@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="280" viewBox="0 0 960 280" role="img" aria-labelledby="title desc">
+<title id="title">ozozuz.tv — the threat model is me</title>
+<desc id="desc">A dark terminal panel: objective, watch one episode; vulnerability, my thumb; mitigation, fewer things to click.</desc>
+<rect width="960" height="280" rx="6" fill="#0c0e10"/>
+<rect x="1" y="1" width="958" height="278" rx="5" fill="none" stroke="#252a30" stroke-width="2"/>
+<path d="M1 43H959" stroke="#252a30"/>
+<g font-family="monospace" font-size="12" fill="#95999e"><text x="24" y="27">ozozuz.tv / incident report</text><text x="846" y="27" fill="#49f879">[private]</text></g>
+<g font-family="monospace" font-size="30" font-weight="bold"><text x="32" y="99" fill="#dededb">ozozuz<tspan fill="#49f879">.tv</tspan></text></g>
+<g font-family="monospace" font-size="15"><text x="32" y="142" fill="#49f879">$ threat-model --honest</text>
+<text x="32" y="179" fill="#95999e">objective</text><text x="208" y="179" fill="#dededb">watch one episode</text>
+<text x="32" y="209" fill="#95999e">vulnerability</text><text x="208" y="209" fill="#dededb">my thumb</text>
+<text x="32" y="239" fill="#95999e">mitigation</text><text x="208" y="239" fill="#dededb">fewer things to click</text></g>
+<path d="M710 121L710 233L807 177Z" fill="none" stroke="#252a30" stroke-width="2"/>
+<path d="M734 146L734 208L787 177Z" fill="#49f879"/>
+</svg>

@@ -1,0 +1,23 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'it.reozoz.streamclean'
+    compileSdk 35
+    defaultConfig { applicationId 'it.reozoz.streamclean'; minSdk 26; targetSdk 35; versionCode 11; versionName '0.7.0' }
+    // Reuse the local development signer when available; otherwise Gradle creates
+    // its standard user-local debug key. No signing key is committed.
+    signingConfigs {
+        debug {
+            if (rootProject.file('debug.keystore').exists()) {
+                storeFile rootProject.file('debug.keystore')
+                storePassword 'android'; keyAlias 'androiddebugkey'; keyPassword 'android'
+            }
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    testOptions { unitTests.returnDefaultValues = true }
+}
+dependencies {
+    implementation 'org.jsoup:jsoup:1.22.1'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+}

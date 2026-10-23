@@ -1,0 +1,12 @@
+.gradle/
+.idea/
+local.properties
+**/build/
+*.iml
+
+# Local signing material stays local.
+*.keystore
+*.jks
+.env
+.env.*
+!*.example
