@@ -2,7 +2,13 @@ plugins { id 'com.android.application' }
 android {
     namespace 'it.reozoz.streamclean'
     compileSdk 35
-    defaultConfig { applicationId 'it.reozoz.streamclean'; minSdk 26; targetSdk 35; versionCode 11; versionName '0.7.0' }
+    buildToolsVersion '35.0.0'
+    defaultConfig {
+        // Keep the existing installed identity so 0.8/0.9 data survives updates.
+        applicationId 'it.reozoz.streamclean.preview'
+        manifestPlaceholders = [appLabel: 'ozozuz.tv']
+        minSdk 26; targetSdk 35; versionCode 17; versionName '0.10.0'
+    }
     // Reuse the local development signer when available; otherwise Gradle creates
     // its standard user-local debug key. No signing key is committed.
     signingConfigs {
@@ -14,10 +20,24 @@ android {
         }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
-    testOptions { unitTests.returnDefaultValues = true }
+    testOptions {
+        unitTests.returnDefaultValues = true
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            // Robolectric's Android runtime must retain the runner's repository/proxy settings.
+            ['http.proxyHost','http.proxyPort','https.proxyHost','https.proxyPort',
+             'javax.net.ssl.trustStore','robolectric.dependency.repo.url'].each { key ->
+                if (System.getProperty(key)) systemProperty key, System.getProperty(key)
+            }
+        }
+    }
 }
 dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.mediarouter:mediarouter:1.8.0'
+    implementation 'com.google.android.gms:play-services-cast-framework:22.3.1'
     implementation 'org.jsoup:jsoup:1.22.1'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
 }

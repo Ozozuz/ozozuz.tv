@@ -8,6 +8,9 @@ import javax.net.ssl.HttpsURLConnection;
 
 final class SafeHttp {
     static byte[] get(URI uri, Set<String> allowedHosts, int limit, boolean image) throws IOException {
+        return get(uri,allowedHosts,limit,image,Collections.emptyMap());
+    }
+    static byte[] get(URI uri, Set<String> allowedHosts, int limit, boolean image,Map<String,String> headers) throws IOException {
         for (int redirects = 0; redirects <= 3; redirects++) {
             if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null
                     || (uri.getPort() != -1 && uri.getPort() != 443) || !allowedHosts.contains(uri.getHost().toLowerCase(Locale.ROOT)))
@@ -18,6 +21,7 @@ final class SafeHttp {
             c.setConnectTimeout(12000); c.setReadTimeout(18000);
             c.setRequestProperty("User-Agent", "StreamClean/0.3 Android");
             c.setRequestProperty("Accept", image ? "image/webp,image/png,image/jpeg" : "text/html");
+            for(Map.Entry<String,String> h:headers.entrySet())if(Arrays.asList("user-agent","referer","origin").contains(h.getKey().toLowerCase(Locale.ROOT)))c.setRequestProperty(h.getKey(),h.getValue());
             try {
                 int status = c.getResponseCode();
                 if (status == 301 || status == 302 || status == 303 || status == 307 || status == 308) {

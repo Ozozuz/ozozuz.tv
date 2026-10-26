@@ -39,6 +39,15 @@ final class Ui {
         b.setMinHeight(0);b.setMinimumHeight(dp(c,44));b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(c,12),0,dp(c,12),0);
         b.setSingleLine(true);b.setEllipsize(TextUtils.TruncateAt.END);b.setStateListAnimator(null);styleButton(b,primary);return b;
     }
+    static ImageButton iconButton(Context c,int drawable,String description){
+        ImageButton button=new ImageButton(c);button.setImageResource(drawable);
+        button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);button.setPadding(dp(c,12),dp(c,12),dp(c,12),dp(c,12));
+        button.setMinimumWidth(dp(c,44));button.setMinimumHeight(dp(c,44));
+        button.setBackground(ripple(c,Color.TRANSPARENT,0,3));
+        button.setImageTintList(new ColorStateList(new int[][]{{-android.R.attr.state_enabled},{android.R.attr.state_selected},{}},new int[]{0xff666c73,ACCENT,TEXT}));
+        button.setContentDescription(description);button.setTooltipText(description);return button;
+    }
+    static void selection(ImageButton button,boolean selected){button.setSelected(selected);}
     static void styleButton(Button b,boolean primary){
         Context c=b.getContext();b.setBackgroundTintList(null);
         b.setBackground(ripple(c,primary?ACCENT:SURFACE,primary?ACCENT:BORDER,4));

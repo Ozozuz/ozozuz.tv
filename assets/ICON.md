@@ -1,17 +1,11 @@
-# Launcher artwork
+# Launcher artwork — 0.8.0
 
-Final project asset: `assets/succubus-icon.png`.
-Generated and edited with the built-in imagegen tool, then mechanically resized
-for Android launcher resources. Transparent original retained. The graphite
-background is supplied separately by the adaptive icon.
+Project asset: `assets/mascot-icon-v2.png`.
+User reference: image(20261023-133009).png, framed from the navel upwards.
+The first request for an unchanged crop was rejected by the image service. A materially safer variant uses the same recognizable character with a closed dark shirt; this clothing change was disclosed to the user.
 
-Final edit prompt:
+Generated with the built-in ImageGen tool, then resized for launcher densities and placed with padding in the adaptive foreground. The adaptive background is white. The original generated output is retained separately; the asset used by the project is copied here.
 
-> Edit the selected original adult succubus portrait. Keep her recognizable face,
-> mature appearance, emerald eyes, black horns, pointed ears, bat wings and
-> head-and-shoulders framing. Make all hair and eyebrows blonde. Add a little
-> Jinx-inspired punk attitude: long tousled blonde twin braids, a subtle side
-> undercut, metallic ear piercings, a black studded choker, a distressed black
-> punk-goth corset/top and a mischievous smirk. Fully clothed, same neckline
-> coverage, no nudity. Keep the dark/emerald accents and genuine transparent
-> background; no scenery, text, logo or watermark.
+Final prompt:
+
+> Create a wholesome, fully clothed Android app logo using the supplied illustration only as a reference for the character's face, lilac hair, cat ears, colors and drawing style. Square composition, head and upper torso, framed down to the waist. Keep the recognizable face, winking expression and raised arms. Replace the original outfit with a plain opaque dark long-sleeved high-neck shirt that completely covers the whole torso down to the waist, with small lilac trim and absolutely no openings or cutouts. All skin below the neck is covered. Simple pale background, same anime linework, head and ears entirely in frame, clear silhouette readable at launcher size. No text, watermark, badge or border. This is a modest, nonsexual character mascot for a utility app.

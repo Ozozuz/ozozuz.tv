@@ -8,7 +8,7 @@ import java.util.*;
 
 public final class TitleParser {
     public record Season(int number, String name, int count) {
-        public String toString() { return (number==0?"Speciali":"Stagione "+number)+(count>0?" · "+count+" episodi":""); }
+        public String toString() { return (number==0?"speciali":"stagione "+number)+(count>0?" · "+count+" episodi":""); }
     }
     public record Episode(long id, int number, String name, String plot, boolean available,String thumbnail) {}
     public record Detail(long id,String slug,String name,String plot,String type,List<Season> seasons,int selectedSeason,List<Episode> episodes,boolean movieAvailable,String backdrop) {}

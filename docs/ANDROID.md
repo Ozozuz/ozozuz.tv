@@ -1,4 +1,4 @@
-# ozozuz.tv — Android 0.7.0
+# ozozuz.tv — Android 0.9.3
 
 Catalogo e navigazione Android nativi. WebView limitata al player video incorporato. Android 8.0 o successivo.
 
@@ -43,13 +43,12 @@ Da terminale con Gradle 8.13, JDK 17 e SDK Android 35 configurati:
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Il wrapper Gradle 8.13 è incluso. Per compilare direttamente con gli strumenti SDK (alternativa verificata, senza Gradle):
-
-```sh
-JAVA_HOME=/path/to/jdk17 ANDROID_HOME=/path/to/android-sdk ./tools/build-sdk.sh
-```
-
-Questo percorso richiede JDK 17, SDK platform 35, build-tools 35.0.0, Python 3, curl e sha256sum. L'APK viene creato in `build/sdk/StreamClean.apk`. La chiave locale `debug.keystore`, se presente, è esclusivamente una chiave di sviluppo (password `android`); non viene pubblicata nel repository. Lo script SDK la genera se manca; Gradle usa quella locale se presente, altrimenti quella debug predefinita. Per una release pubblica configura una tua chiave separata.
+Il wrapper Gradle 8.13 è incluso. `tools/build-sdk.sh` è ora un ingresso compatibile
+che esegue Gradle e copia l'APK in `build/sdk/StreamClean.apk`: l'integrazione
+AndroidX/Google Cast richiede l'unione delle risorse e dei manifest degli AAR.
+Usa `./tools/build-sdk.sh` oppure `./gradlew assembleDebug`. `debug.keystore` nella radice, se presente,
+viene riutilizzato; altrimenti Gradle usa la propria chiave debug. La chiave è
+esclusa da Git e dagli archivi dei sorgenti.
 
 La workflow `.github/workflows/android.yml` compila e pubblica l'APK come artifact di GitHub Actions dopo un push o un avvio manuale (Run workflow). L'APK debug è adatto ai test, non è una release firmata per lo store.
 
@@ -76,3 +75,94 @@ La WebView blocca nuove finestre, download, navigazioni della pagina principale,
 ## Verifica
 
 Parser verificabile tramite test JVM su fixture sintetiche senza contenuti del catalogo. Il file VALIDATION.md descrive le verifiche effettivamente eseguite nell'ambiente di sviluppo.
+
+
+## Preferiti, stagioni e libreria offline — 0.8.0
+
+- Preferiti in SharedPreferences `favorites_v1`: ID stabile, slug, nome, tipo, trama e filename immagine. Il CDN viene ricostruito dal dominio corrente. Stella nelle card e nella scheda, sezione dedicata in home con ricerca locale e filtri.
+- `ProviderPlaylist` legge solo l'oggetto letterale `window.masterPlaylist`, senza eseguire script, e riproduce la costruzione URL del player ufficiale. `DownloadSource` recupera ogni link al momento del download, quindi i token non sono conservati nella coda.
+- `SeasonDownloadPlan` salva soltanto identità e metadati degli episodi disponibili. Il servizio foreground usa un worker sequenziale, una sottocartella per stagione, gli stessi MP4/audio della singola puntata, skip dei file già accessibili e coda dei rimanenti persistente. Il download corrente ricomincia dopo un'interruzione; i completati restano. Annulla svuota la coda ma conserva i completati. Gli errori di una puntata non impediscono il tentativo sulle successive.
+- `DownloadsActivity` è raggiungibile dalla home anche offline: elenca i file completati per titolo/stagione, dimensioni, stato già vista, riproduzione VideoView e rimozione dal dispositivo su conferma esplicita. URI e permessi SAF restano quelli scelti dall'utente. Non serve aprire il file manager per riprodurre o eliminare gli episodi.
+- `DownloadMetadata` recupera le etichette dei download 0.7.0 dal nome del file quando i nuovi metadati non esistono. Le righe non accessibili sono indicate come tali e possono essere rimosse dall'indice.
+- Nuovo logo: variante del riferimento allegato, inquadratura fino alla vita, maglia chiusa; icone legacy e adattive più logo in home. Dettagli e prompt in `assets/ICON.md`.
+
+### Firma della build di test
+
+La vecchia chiave di sviluppo non era inclusa nei sorgenti ed è stata rimossa dalla manutenzione dell'ambiente. La build 0.8.0-test usa una nuova chiave: la firma differisce dalla 0.7.0 installata. Per un aggiornamento che mantenga i dati è necessaria la chiave originale; non disinstallare l'app precedente per aggirare il problema se vuoi conservarne i dati locali. La nuova chiave viene conservata separatamente dai sorgenti e non va pubblicata su GitHub.
+
+
+La consegna installabile è **ozozuz-tv-v0.8.0-preview.apk**: package `it.reozoz.streamclean.preview`, label `ozozuz.tv (test)`, dati separati e installazione affiancata. Lo script SDK abilita questa variante solo con `SC_PREVIEW=1`; i sorgenti normali mantengono il package originale. La preview non importa le preferenze private dell'altra installazione. La migrazione dei download 0.7 si applica all'aggiornamento del package originale con la firma corretta.
+
+La ripresa elimina anche le tracce temporanee rimaste nei soli percorsi privati dell'app dopo un arresto del processo.
+
+La nuova chiave di sviluppo è salvata separatamente come `ozozuz-tv-development-signing-key.jks` (alias `androiddebugkey`, password debug standard `android`). Per conservare la firma delle future preview, copiala nel progetto come `debug.keystore` prima di compilare. Non includerla in Git o nei sorgenti condivisi.
+
+## Orizzontale forzato e Google Cast — 0.9.0
+
+- `PlaybackRotation` richiede `SCREEN_ORIENTATION_SENSOR_LANDSCAPE` senza cambiare
+  le impostazioni globali del telefono. Back ripristina l'orientamento originale.
+  Le due activity di riproduzione gestiscono direttamente i cambi di orientamento.
+- Online, ↻ sposta la stessa WebView in un contenitore nativo a schermo intero:
+  niente nuova richiesta del player o JavaScript bridge. Back chiude prima un
+  eventuale fullscreen del provider, poi quello dell'app. Offline, ↻ forza
+  l'orientamento del player VideoView e funge anche da interruttore.
+- SDK Cast 22.3.1, AppCompat 1.7.0 e MediaRouter stabile 1.8.0. Receiver Google
+  predefinito; non è richiesta una app receiver registrata o una API key.
+- CastUi offre selettore ufficiale, invio esplicito TV ▶, mini controller e
+  controller espanso SDK. Le puntate online sono risolte nuovamente se manca
+  uno snapshot valido; gli MP4 locali mantengono la posizione corrente.
+- CastRelayService mantiene un relay HTTP temporaneo solo sul Wi-Fi IPv4 nella
+  stessa sottorete del receiver. Accesso limitato al suo IP e a un token casuale
+  da 256 bit. Il server non accetta URL arbitrari né percorsi di file, solo
+  risorse del video selezionato. Chiusura su stop/disconnessione/distruzione.
+- L'HLS viene riscritto in URL opachi locali, inclusi varianti, audio, chiavi e
+  init map. Le richieste HTTPS al provider rimangono sul telefono con gli header
+  necessari e la stessa allowlist per URL completo. Nessuna disabilitazione TLS
+  o ampliamento dei permessi WebView. MP4 locali: GET/HEAD e byte range per seek.
+- Servizio foreground mediaPlayback, notifica Interrompi e wake lock limitato.
+  Il telefono deve rimanere sulla stessa rete Wi-Fi. Non c'è transcoding; codec
+  e DRM devono essere supportati dal receiver. Supporto nativo Google Cast;
+  AirPlay/DLNA non implementati. Pressione lunga dell'icona apre, se disponibile,
+  la trasmissione schermo di Android, separata dal Cast video.
+- La preview 0.9.0 usa la stessa firma e lo stesso package della preview 0.8.0.
+  I relativi dati restano al loro posto durante l'aggiornamento.
+
+## Nome definitivo — 0.9.1
+
+- Nome nel launcher e nell'app: **ozozuz.tv**, senza suffissi test/preview.
+- APK: `ozozuz-tv-v0.9.1.apk`, versionCode 14.
+- Una sola variante di compilazione. L'identificatore interno resta quello
+  dell'installazione 0.8/0.9 (`it.reozoz.streamclean.preview`) esclusivamente
+  per conservarne i dati e consentire l'aggiornamento con la firma attuale.
+  La parola preview non compare nel nome visibile o nel nome dell'APK.
+- La vecchia installazione 0.7 può essere disinstallata separatamente.
+
+## Crash di avvio Cast — 0.9.2
+
+- Il mini controller SDK 22.3.1 configura pulsanti e stile in `onInflate`.
+  Crearlo con `new MiniControllerFragment()` e una transazione programmatica
+  saltava quel passaggio e portava a un NullPointerException in `onCreateView`.
+- Il controller viene ora istanziato dal layout XML `cast_controls`, con un ID
+  separato per il contenitore. L'inflater di AppCompat esegue `onInflate` anche
+  sul percorso di ripristino del fragment.
+- `StartupTest` riproduce il vecchio crash e verifica il percorso corretto con
+  vere risorse/viste SDK, salvataggio e ricreazione dell'activity, avvio e resume
+  della home senza Play Services. Robolectric API 26 e 35; solo il binding
+  UIMediaController al ricevitore viene sostituito, senza fingere una TV reale.
+- VersionCode 15, nome ozozuz.tv e firma invariata: aggiornamento diretto.
+
+## Barra comandi e preferiti — 0.9.3
+
+- Le icone stella/rotazione erano testo da 23 sp dentro pulsanti da 44 dp con
+  24 dp di padding: il testo veniva tagliato. Ora sono ImageButton con risorse
+  vettoriali, area tocco da 44 dp e grafica indipendente dalla scala dei font.
+- Stella più discreta (risorsa da 20 dp), senza riquadro, visibile e utilizzabile
+  nella scheda già aperta. Contorno vuoto e riempimento verde riflettono lo stato
+  locale dei preferiti; stesso stile anche sulle copertine in home/ricerca.
+- Indietro allineato a sinistra; rotazione solo a player aperto. Il comando
+  TV ▶ compare solo con un video selezionato e un receiver collegato. Il Cast
+  mantiene il selettore ufficiale. Nessuna modifica alla riproduzione.
+- Selettore e download usano entrambi stagione minuscolo; spazio fra i pulsanti.
+- Test UI Robolectric su API 26/35 con schermata da 320 dp: aggiunta/rimozione
+  preferito dalla scheda, persistenza locale, icone e barra senza sovrapposizioni.
+  Render nativo API 35 ispezionato separatamente; risposte del catalogo sintetiche.

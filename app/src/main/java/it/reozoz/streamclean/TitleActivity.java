@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
 
-public final class TitleActivity extends Activity {
+public final class TitleActivity extends androidx.appcompat.app.AppCompatActivity {
     private URI origin;
     private long titleId;
     private String slug;
@@ -23,6 +23,10 @@ public final class TitleActivity extends Activity {
     private WatchedEpisodes watched;
     private CheckBox watchedToggle;
     private Button download;
+    private Button seasonDownload;
+    private ImageButton favorite,landscape;
+    private CastUi cast;
+    private Favorites favorites;
     private Intent pendingDownload;
     private final Handler downloadHandler=new Handler(Looper.getMainLooper());
     private final Runnable downloadPoll=new Runnable(){public void run(){updateEpisodeActions();downloadHandler.postDelayed(this,1000);}};
@@ -39,7 +43,7 @@ public final class TitleActivity extends Activity {
         super.onCreate(state);
         try{origin=HomeParser.origin(getIntent().getStringExtra("origin"));titleId=getIntent().getLongExtra("id",0);slug=getIntent().getStringExtra("slug");if(titleId<=0||slug==null)throw new IllegalArgumentException();}
         catch(Exception e){finish();return;}
-        watched=new WatchedEpisodes(this);EpisodeDownloadService.recover(this);
+        watched=new WatchedEpisodes(this);favorites=new Favorites(this);EpisodeDownloadService.recover(this);
         if(state!=null)pendingDownload=state.getParcelable("pending_download");
         thumbnails=new ThumbnailLoader(this,origin);
         root=Ui.column(this);root.setPadding(dp(20),dp(12),dp(20),0);
@@ -47,8 +51,12 @@ public final class TitleActivity extends Activity {
         FrameLayout scene=new FrameLayout(this);backdrop=new TitleBackdrop(this);scene.addView(backdrop,new FrameLayout.LayoutParams(-1,-1));scene.addView(root,new FrameLayout.LayoutParams(-1,-1));
         setContentView(scene);root.requestApplyInsets();
         LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);
-        Button back=Ui.button(this,"< catalogo",false);Ui.navigation(back,false);back.setOnClickListener(v->finish());top.addView(back,new LinearLayout.LayoutParams(-2,dp(40)));
-        root.addView(top,Ui.margin(this,-1,40,0,14));
+        ImageButton back=Ui.iconButton(this,R.drawable.ic_back,"Torna al catalogo");back.setOnClickListener(v->finish());top.addView(back,new LinearLayout.LayoutParams(dp(44),dp(44)));
+        top.addView(new View(this),new LinearLayout.LayoutParams(0,1,1));
+        favorite=Ui.iconButton(this,R.drawable.ic_star_outline,"Aggiungi ai preferiti");favorite.setEnabled(false);top.addView(favorite,new LinearLayout.LayoutParams(dp(44),dp(44)));favorite.setOnClickListener(v->toggleFavorite());
+        landscape=Ui.iconButton(this,R.drawable.ic_landscape,"Forza orientamento orizzontale");landscapeAvailable(false);landscape.setOnClickListener(v->{if(player!=null)player.forceLandscape();});top.addView(landscape,new LinearLayout.LayoutParams(dp(44),dp(44)));
+        cast=new CastUi(this,this::castRequest,()->{playerVersion++;if(player!=null)player.clear();landscapeAvailable(false);setStatus("Riproduzione sulla TV · usa Cast per i controlli o Ricarica per tornare al telefono.");});cast.addTo(top);
+        root.addView(top,Ui.margin(this,-1,44,0,14));
         title=Ui.text(this,"Caricamento…",25,Ui.TEXT,true);title.setMaxLines(2);root.addView(title);
         metadata=Ui.mono(this,"",11,Ui.MUTED);root.addView(metadata,Ui.margin(this,-1,-2,8,10));
         plot=Ui.text(this,"",13,Ui.MUTED,false);plot.setMaxLines(3);plot.setEllipsize(TextUtils.TruncateAt.END);plot.setLineSpacing(dp(2),1);root.addView(plot,Ui.margin(this,-1,-2,0,8));
@@ -68,18 +76,29 @@ public final class TitleActivity extends Activity {
         download=Ui.button(this,"Scarica ↓",false);download.setOnClickListener(v->downloadEpisode());episodeActions.addView(download,new LinearLayout.LayoutParams(-2,dp(44)));root.addView(episodeActions,Ui.margin(this,-1,44,0,6));
         seasonBar=new LinearLayout(this);seasonBar.setGravity(Gravity.CENTER_VERTICAL);seasonBar.setVisibility(View.GONE);
         episodeHeading=Ui.section(this,"episodi",12);seasonBar.addView(episodeHeading,new LinearLayout.LayoutParams(0,-2,1));
-        seasonSelector=Ui.button(this,"Stagione  ▾",false);seasonSelector.setContentDescription("Scegli stagione");seasonSelector.setOnClickListener(v->chooseSeason());seasonBar.addView(seasonSelector,new LinearLayout.LayoutParams(-2,dp(44)));
+        episodeHeading.setMaxLines(1);episodeHeading.setEllipsize(TextUtils.TruncateAt.END);
+        seasonDownload=Ui.button(this,"↓ stagione",false);seasonDownload.setOnClickListener(v->downloadSeason());seasonBar.addView(seasonDownload,new LinearLayout.LayoutParams(-2,dp(44)));
+        seasonSelector=Ui.button(this,"stagione  ▾",false);seasonSelector.setContentDescription("Scegli stagione");seasonSelector.setOnClickListener(v->chooseSeason());LinearLayout.LayoutParams seasonParams=new LinearLayout.LayoutParams(-2,dp(44));seasonParams.leftMargin=dp(8);seasonBar.addView(seasonSelector,seasonParams);
         root.addView(seasonBar,Ui.margin(this,-1,48,6,12));
         episodes=new ListView(this);episodes.setBackgroundColor(Color.TRANSPARENT);episodes.setCacheColorHint(Color.TRANSPARENT);
         episodes.setDivider(new ColorDrawable(Color.TRANSPARENT));episodes.setDividerHeight(dp(8));episodes.setSelector(new ColorDrawable(Color.TRANSPARENT));episodes.setVerticalScrollBarEnabled(false);
         episodes.setPadding(0,0,0,dp(20));episodes.setClipToPadding(false);root.addView(episodes,new LinearLayout.LayoutParams(-1,0,1));
-        episodes.setOnItemClickListener((p,v,index,id)->playEpisode(index));fetch(-1);
+        cast.mini(root);episodes.setOnItemClickListener((p,v,index,id)->playEpisode(index));fetch(getIntent().getIntExtra("season",-1));
     }
+    private CastRequest castRequest(){
+        if(detail==null||seasonSelector==null||!seasonSelector.isEnabled())return null;
+        boolean tv="tv".equals(detail.type());if(tv&&(selectedEpisode<0||selectedEpisode>=detail.episodes().size()))return null;
+        if(!tv&&!detail.movieAvailable())return null;
+        long episode=tv?detail.episodes().get(selectedEpisode).id():0;
+        String label=tv?detail.name()+" · S"+detail.selectedSeason()+" E"+detail.episodes().get(selectedEpisode).number():detail.name();
+        return CastRequest.online(label,origin,titleId,episode,player==null?null:player.downloadSource());
+    }
+    private void landscapeAvailable(boolean available){landscape.setEnabled(available);landscape.setVisibility(available?View.VISIBLE:View.GONE);}
     private void setStatus(String value){status.setText(value);status.setVisibility(value.isEmpty()?View.GONE:View.VISIBLE);}
     private void fetch(int season){
-        final int request=++detailVersion;playerVersion++;selectedEpisode=-1;
+        final int request=++detailVersion;playerVersion++;selectedEpisode=-1;landscapeAvailable(false);
         if(player!=null)player.clear();playerBox.setVisibility(View.GONE);controls.setVisibility(View.GONE);nowPlaying.setVisibility(View.GONE);nowPlaying.setText("");episodeActions.setVisibility(View.GONE);
-        plot.setVisibility(View.VISIBLE);setStatus(season<0?"Caricamento del titolo…":"Caricamento episodi…");episodes.setAdapter(null);seasonSelector.setEnabled(false);movie.setEnabled(false);
+        plot.setVisibility(View.VISIBLE);setStatus(season<0?"Caricamento del titolo…":"Caricamento episodi…");episodes.setAdapter(null);seasonSelector.setEnabled(false);seasonDownload.setEnabled(false);movie.setEnabled(false);
         pages.execute(()->{
             try{TitleParser.Detail result=SafeHttp.detail(origin,titleId,slug,season);runOnUiThread(()->{if(isDestroyed()||request!=detailVersion)return;detail=result;slug=result.slug();showDetail();});}
             catch(Exception e){runOnUiThread(()->{
@@ -89,16 +108,48 @@ public final class TitleActivity extends Activity {
         });
     }
     private void showDetail(){
+        updateFavorite();favorite.setEnabled(true);
         backdrop.show(origin,detail.backdrop());title.setText(detail.name());plot.setText(detail.plot());plot.setVisibility(detail.plot().isEmpty()?View.GONE:View.VISIBLE);movie.setEnabled(true);seasonSelector.setEnabled(true);
         if(!"tv".equals(detail.type())){
             metadata.setText("film");seasonBar.setVisibility(View.GONE);episodes.setVisibility(View.GONE);movie.setVisibility(View.VISIBLE);movie.setEnabled(detail.movieAvailable());
             setStatus(detail.movieAvailable()?"":"Video non ancora disponibile sul sito.");return;
         }
         metadata.setText("serie tv · "+detail.seasons().size()+" stagioni");movie.setVisibility(View.GONE);seasonBar.setVisibility(View.VISIBLE);episodes.setVisibility(View.VISIBLE);
-        seasonSelector.setText((detail.selectedSeason()==0?"Speciali":"Stagione "+detail.selectedSeason())+"  ▾");
+        seasonSelector.setText((detail.selectedSeason()==0?"Speciali":"stagione "+detail.selectedSeason())+"  ▾");
         seasonSelector.setContentDescription("Scegli stagione. Attuale: "+detail.selectedSeason());
         episodeHeading.setText(Ui.accentPrefix("// ","episodi · "+detail.episodes().size()));episodes.setAdapter(new EpisodeAdapter());
         setStatus(detail.episodes().isEmpty()?"Nessun episodio disponibile in questa stagione.":"");
+        updateSeasonDownload();
+    }
+    private void updateFavorite(){if(favorite!=null){boolean saved=favorites.contains(titleId);favorite.setImageResource(saved?R.drawable.ic_star_filled:R.drawable.ic_star_outline);Ui.selection(favorite,saved);favorite.setContentDescription(saved?"Rimuovi dai preferiti":"Aggiungi ai preferiti");favorite.setTooltipText(favorite.getContentDescription());}}
+    private void toggleFavorite(){
+        if(detail==null)return;String poster=getIntent().getStringExtra("poster");if(poster==null||poster.isEmpty())poster="https://cdn."+origin.getHost()+"/images/"+detail.backdrop();
+        favorites.toggle(new HomeParser.Title(titleId,detail.name(),detail.type(),getIntent().getStringExtra("score")==null?"":getIntent().getStringExtra("score"),detail.plot(),poster,slug),origin);updateFavorite();
+        Toast.makeText(this,favorites.contains(titleId)?"Salvato nei preferiti":"Rimosso dai preferiti",Toast.LENGTH_SHORT).show();
+    }
+    private String seasonKey(){return detail==null?"":"season:"+titleId+":"+detail.selectedSeason();}
+    private void updateSeasonDownload(){
+        if(detail==null||!"tv".equals(detail.type())||!seasonSelector.isEnabled())return;
+        String active=EpisodeDownloadService.activeKey(),key=seasonKey();boolean busy=!active.isEmpty(),same=active.equals(key);
+        boolean resume=key.equals(EpisodeDownloadService.prefs(this).getString("queue_key",""));
+        seasonDownload.setText(same?"Annulla":resume?"↓ riprendi":"↓ stagione");seasonDownload.setEnabled(same||!busy&&detail.episodes().stream().anyMatch(TitleParser.Episode::available));
+        seasonDownload.setContentDescription(same?"Annulla download stagione. "+EpisodeDownloadService.progressText():resume?"Riprendi download stagione":"Scarica tutti gli episodi della stagione "+detail.selectedSeason());
+        if(same)setStatus(EpisodeDownloadService.progressText());
+        String result=EpisodeDownloadService.prefs(this).getString("error:"+key,"");if(!result.isEmpty()){EpisodeDownloadService.prefs(this).edit().remove("error:"+key).apply();setStatus(result);}
+    }
+    private void downloadSeason(){
+        if(detail==null)return;String key=seasonKey(),active=EpisodeDownloadService.activeKey();
+        if(!active.isEmpty()){if(active.equals(key))startService(new Intent(this,EpisodeDownloadService.class).setAction("cancel"));return;}
+        boolean resume=key.equals(EpisodeDownloadService.prefs(this).getString("queue_key",""));
+        pendingDownload=new Intent(this,EpisodeDownloadService.class).setAction("season").putExtra("key",key).putExtra("label",detail.name()+" · Stagione "+detail.selectedSeason())
+            .putExtra("origin",origin.toString()).putExtra("title",titleId).putExtra("slug",slug).putExtra("season",detail.selectedSeason()).putExtra("resume",resume);
+        startDownload();
+    }
+    private void startDownload(){
+        try{
+            if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},7002);
+            startForegroundService(pendingDownload);setStatus("Download avviato · gestisci gli episodi dalla sezione Download.");
+        }catch(Exception e){setStatus("Download non avviato: "+e.getMessage());}finally{pendingDownload=null;}
     }
     private void chooseSeason(){
         if(detail==null||detail.seasons().isEmpty()||!seasonSelector.isEnabled())return;
@@ -174,7 +225,7 @@ public final class TitleActivity extends Activity {
         if(detail==null)return;boolean tv="tv".equals(detail.type());if(tv&&(selectedEpisode<0||selectedEpisode>=detail.episodes().size()))return;
         long episodeId=tv?detail.episodes().get(selectedEpisode).id():0;final int request=++playerVersion;
         if(player==null)player=new EmbeddedPlayer(this,playerBox,status);else player.clear();
-        plot.setVisibility(View.GONE);playerBox.setVisibility(View.VISIBLE);controls.setVisibility(View.VISIBLE);nowPlaying.setVisibility(View.VISIBLE);
+        landscapeAvailable(true);plot.setVisibility(View.GONE);playerBox.setVisibility(View.VISIBLE);controls.setVisibility(View.VISIBLE);nowPlaying.setVisibility(View.VISIBLE);
         if(tv){resizePlayer();episodeActions.setVisibility(View.VISIBLE);updateEpisodeActions();}else episodeActions.setVisibility(View.GONE);
         if(!tv){episodes.setVisibility(View.GONE);movie.setVisibility(View.GONE);playerBox.setLayoutParams(new LinearLayout.LayoutParams(-1,0,1));}
         previous.setVisibility(tv?View.VISIBLE:View.GONE);next.setVisibility(tv?View.VISIBLE:View.GONE);previous.setEnabled(selectedEpisode>0);next.setEnabled(tv&&selectedEpisode<detail.episodes().size()-1);
@@ -184,6 +235,7 @@ public final class TitleActivity extends Activity {
             catch(Exception e){runOnUiThread(()->{if(!isDestroyed()&&request==playerVersion)setStatus("Player non disponibile: "+e.getMessage()+". Premi Ricarica per riprovare.");});}});
     }
     private void updateEpisodeActions(){
+        if(cast!=null)cast.refresh();updateSeasonDownload();
         if(download==null||detail==null||selectedEpisode<0||selectedEpisode>=detail.episodes().size())return;
         long episode=detail.episodes().get(selectedEpisode).id();boolean seen=watched.contains(titleId,episode);if(watchedToggle.isChecked()!=seen)watchedToggle.setChecked(seen);
         String key=WatchedEpisodes.key(titleId,episode),active=EpisodeDownloadService.activeKey();boolean busy=!active.isEmpty();
@@ -202,19 +254,10 @@ public final class TitleActivity extends Activity {
         try{
             String label=detail.name()+" · S"+detail.selectedSeason()+" E"+episode.number();
             pendingDownload=new Intent(this,EpisodeDownloadService.class).putExtra("key",key).putExtra("label",label).putExtra("source",source.encode());
-            String filename=(detail.name()+" - S"+detail.selectedSeason()+"E"+episode.number()+" - "+episode.name()).replaceAll("[^\\p{L}\\p{N} ._-]","_");if(filename.length()>150)filename=filename.substring(0,150);
-            startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("video/mp4").putExtra(Intent.EXTRA_TITLE,filename+".mp4"),7001);
+            pendingDownload.putExtra("download_meta",DownloadLibrary.metadata(titleId,episode.id(),detail.name(),detail.selectedSeason(),episode.number(),episode.name()));
+            pendingDownload.putExtra("title",titleId).putExtra("episode",episode.id()).putExtra("season",detail.selectedSeason());
+            startDownload();
         }catch(Exception e){pendingDownload=null;setStatus("Impossibile preparare il download: "+e.getMessage());}
-    }
-    @Override protected void onActivityResult(int request,int result,Intent data){
-        super.onActivityResult(request,result,data);if(request!=7001)return;
-        if(result!=RESULT_OK||data==null||data.getData()==null||pendingDownload==null){pendingDownload=null;return;}
-        try{
-            android.net.Uri uri=data.getData();int flags=data.getFlags()&(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            try{getContentResolver().takePersistableUriPermission(uri,flags);}catch(SecurityException ignored){}
-            if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},7002);
-            pendingDownload.putExtra("destination",uri);startForegroundService(pendingDownload);setStatus("Download avviato. Puoi continuare a guardare la puntata.");
-        }catch(Exception e){setStatus("Download non avviato: "+e.getMessage());}finally{pendingDownload=null;}
     }
     @Override protected void onSaveInstanceState(Bundle state){super.onSaveInstanceState(state);if(pendingDownload!=null)state.putParcelable("pending_download",pendingDownload);}
     private void resizePlayer(){
@@ -230,11 +273,11 @@ public final class TitleActivity extends Activity {
     private int dp(float v){return Ui.dp(this,v);}
     @Override public void onBackPressed(){
         if(player!=null&&player.exitFullscreen())return;
-        if(playerBox.getVisibility()==View.VISIBLE){playerVersion++;if(player!=null)player.clear();playerBox.setVisibility(View.GONE);controls.setVisibility(View.GONE);nowPlaying.setVisibility(View.GONE);episodeActions.setVisibility(View.GONE);plot.setVisibility(View.VISIBLE);
+        if(playerBox.getVisibility()==View.VISIBLE){landscapeAvailable(false);playerVersion++;if(player!=null)player.clear();playerBox.setVisibility(View.GONE);controls.setVisibility(View.GONE);nowPlaying.setVisibility(View.GONE);episodeActions.setVisibility(View.GONE);plot.setVisibility(View.VISIBLE);
             if(detail!=null&&!"tv".equals(detail.type()))movie.setVisibility(View.VISIBLE);setStatus("");return;}
         super.onBackPressed();
     }
-    @Override protected void onPause(){downloadHandler.removeCallbacks(downloadPoll);if(player!=null)player.pause();super.onPause();}
-    @Override protected void onResume(){super.onResume();if(player!=null)player.resume();downloadHandler.removeCallbacks(downloadPoll);downloadHandler.post(downloadPoll);}
+    @Override protected void onPause(){if(cast!=null)cast.pause();downloadHandler.removeCallbacks(downloadPoll);if(player!=null)player.pause();super.onPause();}
+    @Override protected void onResume(){super.onResume();if(cast!=null)cast.resume();if(player!=null)player.resume();if(favorites!=null)updateFavorite();if(episodes!=null&&episodes.getAdapter() instanceof BaseAdapter)((BaseAdapter)episodes.getAdapter()).notifyDataSetChanged();downloadHandler.removeCallbacks(downloadPoll);downloadHandler.post(downloadPoll);}
     @Override protected void onDestroy(){detailVersion++;playerVersion++;downloadHandler.removeCallbacksAndMessages(null);if(seasonDialog!=null)seasonDialog.dismiss();pages.shutdownNow();if(thumbnails!=null)thumbnails.close();if(backdrop!=null)backdrop.close();if(player!=null)player.destroy();super.onDestroy();}
 }

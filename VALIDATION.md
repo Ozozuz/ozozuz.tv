@@ -116,3 +116,111 @@
 - All **32 JVM tests passed**, including 11 new cases for quality/audio selection, exact segment URLs, init/ranges, AES sequence/explicit IV and rejected formats.
 - Real provider master and renditions were retrieved: 334 video segments and 334 audio segments, AES-128, no discontinuities or init-map changes. Only the first video/audio segments were downloaded and decrypted for inspection. ffprobe identified H.264 video and AAC audio. This is not an end-to-end full episode download test.
 - Complete Android SDK 35 build and v2/v3 signature verification passed for versionCode 11 / versionName 0.7.0. No emulator was started and no on-device watched/download/local-playback UI test was performed.
+
+
+## Favorites, season queue and offline library — 0.8.0
+
+- Added local title favorites with stable IDs, sanitized poster filenames rebased onto the current catalogue CDN, detail/card stars, and a dedicated home tab with local search and type filters.
+- Season download persists episode identity/metadata, resolves each provider link freshly and sequentially, skips accessible completed documents, retains pending jobs across process interruption, and handles individual errors/cancellation without deleting completed files. No authentication or DRM bypass; the same HLS resource policy and native MP4 engine remain in use.
+- New DownloadsActivity lists completed documents by title/season, byte size and watched state, provides offline in-app playback, indicates missing files and deletes documents on explicit confirmation. Legacy 0.7 filenames recover title/season/episode labels without catalogue requests. Interrupted private temporary tracks are removed on recovery.
+- All **54 JVM tests passed**: previous 32 plus favorites serialization/rebasing, literal provider configuration parsing and URL validation, queue round-trip/filtering/filenames, and legacy download metadata migration.
+- Native Java DownloadSource integration fetched the current real South Park episode config and master playlist, then accepted **334 video and 334 audio segments** in the selected renditions. No segment payload or full episode was downloaded for this check.
+- Full SDK 35 build, package/label/icon manifest inspection, alignment and APK v2/v3 signature verification passed. VersionCode 12, versionName 0.8.0. No emulator, on-device UI, full season-download, deletion or VideoView test was performed.
+- The old signing key was lost during workspace maintenance and was absent from the recovered source archive. Old certificate SHA-256: fce152d2cf7e5c76e074add6596011c724c900d7a4697689751021cd0057e2a5. New development certificate SHA-256: 85a0002112ce7231044f1fa791d67826addeb28de97df5221c2a83a0bd3a798e. This is not an upgrade-compatible signer.
+- The delivered preview is explicitly separated: package it.reozoz.streamclean.preview, label ozozuz.tv (test), independent data. Default source builds keep the original package. The new development key is backed up separately, excluded from source ZIP/Git.
+- Logo generation initially rejected the original crop. A materially safer, disclosed variant preserves the character with a closed shirt. Launcher densities and adaptive foreground were regenerated from the accepted asset.
+
+
+## Forced landscape and Google Cast — 0.9.0 / 2026-10-23
+
+- Online and local video players expose an app-local SENSOR_LANDSCAPE request
+  that works independently of the global auto-rotation preference. Existing
+  online WebView is reparented without reloading; nested provider fullscreen
+  and app fullscreen restore their original UI/orientation in order. Playback
+  activity configuration handling keeps the player instance during rotation.
+- Added official Google Cast device picker, explicit send-current-media action,
+  mini/expanded controllers and notification configuration. AppCompat activities
+  and merged AndroidX/Cast AAR resources are built with Gradle.
+- Foreground relay supports only the chosen receiver IP and a fresh 256-bit
+  URL token. Online HLS variants, audio, keys and init maps are rewritten to
+  scoped opaque resources; provider HTTPS headers/TLS and exact URL allowlist
+  are preserved. Local MP4 supports HEAD, GET and single byte ranges for seek.
+  Stop/disconnect closes sockets, worker and wake lock. No transcoding.
+- **62 JVM tests passed**, including eight new tests for signed HLS URI rewriting,
+  keys/audio/maps, BOM, unsafe URLs, ranges, GET/HEAD/OPTIONS, denied methods and
+  tokens/receiver IPs, bounded output and socket/body cleanup.
+- Gradle 8.13 / AGP 8.10.1 / JDK 17 / SDK 35: assembleDebug, testDebugUnitTest
+  and lintDebug all passed. Lint has zero errors and 40 warnings (largely
+  existing translation/icon/backup recommendations); no unsupported API calls
+  were reported. Corrected persistable-URI grant constants surfaced by lint.
+- Preview package it.reozoz.streamclean.preview, launcher ozozuz.tv (test),
+  versionCode 13 / versionName 0.9.0. Signer matches the 0.8.0 preview exactly:
+  85a0002112ce7231044f1fa791d67826addeb28de97df5221c2a83a0bd3a798e.
+  APK SHA-256: 3ef03c8910c41036d1efc91e1d8b42a3969f3b7789d2c0368e8ea8a950e0bf27. APK v2 signature verification passed.
+- No emulator was started. No physical Android/Chromecast, LAN receiver or
+  end-to-end casting/rotation test was performed. Google Cast requires Play
+  Services, same-subnet IPv4 Wi-Fi, a connected phone and receiver-compatible
+  codecs. AirPlay/DLNA are not native targets; long press opens the separate
+  Android screen-cast settings where available.
+
+
+## Installed name cleanup — 0.9.1
+
+- Launcher label is ozozuz.tv, with no test/preview suffix. APK is
+  ozozuz-tv-v0.9.1.apk, versionCode 14.
+- Same installed package and development signer as 0.8/0.9; updates preserve
+  those installations' local data. Legacy 0.7 remains separately uninstallable.
+- Gradle assembleDebug passed; packaged label/version and APK signature
+  verification passed. APK SHA-256: eabef6d2c4f8c5f3dd452166d1090c1f13e9cc3449a3318540671702e0d651cf.
+- No application Java/playback changes. Existing 62-test and lint results from
+  0.9.0 remain applicable; tests were not rerun for this label/version edit.
+- No device uninstall or installation was performed from this environment.
+
+
+## Startup crash fix — 0.9.2 / 2026-10-24
+
+- Reproduced the SDK 22.3.1 failure on API 26 and 35: programmatic creation of
+  MiniControllerFragment without onInflate leaves its button array null;
+  onCreateView throws NullPointerException (MiniControllerFragment.zza).
+  This matches a concrete startup path in the 0.9.0/0.9.1 Cast initialization.
+  A physical-device stack trace from the user's phone was not available.
+- Controller now comes from an XML fragment tag after Cast initialization;
+  AppCompat invokes onInflate and initializes SDK style/button configuration.
+  Parent container has a separate stable ID. Fragment state restoration uses
+  the same inflation path.
+- **70 tests passed**, including eight Android runtime cases (four scenarios
+  on both API 26 and 35): reproduced old failure, real SDK controller-view
+  creation after XML initialization, saved-state activity recreation, and
+  MainActivity startup/resume without Google Play Services. Robolectric 4.14.1
+  runs real Android resources/lifecycle; UIMediaController's remote-TV binding
+  is replaced for these controller tests. This is not a physical Cast test.
+- assembleDebug and lintDebug passed; zero lint errors. Packaged manifest:
+  name ozozuz.tv, versionCode 15, versionName 0.9.2, same installed package.
+  APK signature verification passed; same certificate as 0.8/0.9.0/0.9.1:
+  85a0002112ce7231044f1fa791d67826addeb28de97df5221c2a83a0bd3a798e.
+- APK SHA-256: eda82a768ac52040d8f03ff7b9ae538cab5286df85aea894674443acb86f280e. No emulator or physical device was used.
+
+
+## Toolbar clipping, lowercase season and detail favorites — 0.9.3
+
+- Replaced text-based star/rotation glyphs in narrow buttons with vector-backed
+  ImageButtons. Favorite graphic is 20 dp with a 44 dp hit area; tint/fill and
+  accessibility descriptions reflect the stored state. Catalogue cards use
+  the same smaller star with a dark backing over artwork.
+- Title toolbar: fixed left back button, flexible spacer, clear favorite and
+  standard Cast picker. Landscape action only while the local player is open;
+  TV send action only with a selected video and connected receiver. Fixed icon
+  sizing also applies to downloaded-video rotation.
+- Season selector now shows lowercase stagione, matching the download action.
+  Season controls have an 8 dp gap.
+- **73 tests passed**, including direct add/remove favorite actions from a loaded
+  title page and persisted-state assertions on API 26 and 35 at 320 dp width.
+  Header bounds, visible vector and lowercase season label are checked.
+- Native Robolectric API 35 render at 360 dp was generated and visually inspected:
+  star and back icons visible, no empty toolbar boxes, season labels consistent.
+  Catalogue response is synthetic; no physical-phone visual test was performed.
+- Fresh isolated Gradle build, all tests and lintDebug passed (zero lint errors).
+  VersionCode 16 / versionName 0.9.3, label ozozuz.tv, unchanged package and signer.
+  APK signature verified with certificate SHA-256:
+  85a0002112ce7231044f1fa791d67826addeb28de97df5221c2a83a0bd3a798e.
+- APK SHA-256: fbb90152c3f48b477aaf459ddd67c332667909dba7b32ce2f215a64ade5c1368. No emulator was started.

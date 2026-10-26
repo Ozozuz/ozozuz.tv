@@ -17,6 +17,9 @@ final class EmbeddedPlayer {
     private final WebView web;
     private View fullscreen;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
+    private final FullscreenFrame appFullscreen;
+    private final PlaybackWindow window;
+    private final PlaybackRotation rotation;
     private volatile String embed="";
     private volatile MediaAllowlist media=new MediaAllowlist();
     private volatile PlaybackSnapshot downloadSource;
@@ -24,7 +27,9 @@ final class EmbeddedPlayer {
     @SuppressLint("SetJavaScriptEnabled")
     EmbeddedPlayer(Activity activity,FrameLayout container,TextView status) {
         this.activity=activity;this.container=container;this.status=status;
+        rotation=new PlaybackRotation(activity);window=new PlaybackWindow(activity);
         web=new WebView(activity);web.setBackgroundColor(Color.BLACK);
+        appFullscreen=new FullscreenFrame(activity,web,()->exitFullscreen());
         WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);s.setAllowContentAccess(false);
         s.setAllowFileAccessFromFileURLs(false);s.setAllowUniversalAccessFromFileURLs(false);
@@ -67,30 +72,35 @@ final class EmbeddedPlayer {
             public boolean onShowFileChooser(WebView v,ValueCallback<Uri[]> callback,FileChooserParams params){callback.onReceiveValue(null);return true;}
             public void onShowCustomView(View view,CustomViewCallback callback){
                 if(fullscreen!=null){callback.onCustomViewHidden();return;}
-                fullscreen=view;fullscreenCallback=callback;
+                fullscreen=view;fullscreenCallback=callback;rotation.landscape();window.fullscreen(true);window.awake(true);
                 ((FrameLayout)activity.getWindow().getDecorView()).addView(view,new FrameLayout.LayoutParams(-1,-1));
-                activity.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
             }
             public void onHideCustomView(){exitFullscreen();}
         });
         container.addView(web,new FrameLayout.LayoutParams(-1,-1));
     }
     void load(TitleParser.Player source) {
-        media=new MediaAllowlist();downloadSource=null;embed=source.embed().toString();
+        window.awake(true);media=new MediaAllowlist();downloadSource=null;embed=source.embed().toString();
         String html="<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><meta http-equiv='Content-Security-Policy' content=\"default-src 'none'; frame-src https://vixcloud.cc; style-src 'unsafe-inline'\"><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#000;overflow:hidden}</style></head><body><iframe src=\""+android.text.TextUtils.htmlEncode(embed)+"\" allow='autoplay; fullscreen; picture-in-picture' allowfullscreen></iframe></body></html>";
         web.loadDataWithBaseURL(source.page().toString(),html,"text/html","UTF-8",null);
         status.setText("Premi Play nel video · finestre esterne bloccate");
     }
     PlaybackSnapshot downloadSource(){return downloadSource;}
-    void clear(){downloadSource=null;media=new MediaAllowlist();exitFullscreen();web.stopLoading();web.loadUrl("about:blank");embed="";}
-    boolean exitFullscreen(){
-        if(fullscreen==null)return false;
-        ((FrameLayout)activity.getWindow().getDecorView()).removeView(fullscreen);fullscreen=null;
-        activity.getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-        if(fullscreenCallback!=null){WebChromeClient.CustomViewCallback c=fullscreenCallback;fullscreenCallback=null;c.onCustomViewHidden();}
-        return true;
+    void forceLandscape(){
+        if(appFullscreen.active()){exitFullscreen();return;}
+        appFullscreen.enter();rotation.landscape();window.fullscreen(true);window.awake(true);
     }
-    void pause(){web.onPause();}
-    void resume(){web.onResume();}
-    void destroy(){exitFullscreen();container.removeView(web);web.stopLoading();web.destroy();}
+    void clear(){downloadSource=null;media=new MediaAllowlist();while(exitFullscreen()){}window.awake(false);web.stopLoading();web.loadUrl("about:blank");embed="";}
+    boolean exitFullscreen(){
+        if(fullscreen!=null){
+            ((android.view.ViewGroup)fullscreen.getParent()).removeView(fullscreen);fullscreen=null;
+            if(fullscreenCallback!=null){WebChromeClient.CustomViewCallback callback=fullscreenCallback;fullscreenCallback=null;callback.onCustomViewHidden();}
+            if(!appFullscreen.active()){window.fullscreen(false);rotation.restore();}return true;
+        }
+        if(!appFullscreen.active())return false;
+        appFullscreen.leave();window.fullscreen(false);rotation.restore();return true;
+    }
+    void pause(){window.pause();web.onPause();}
+    void resume(){window.resume();web.onResume();}
+    void destroy(){while(exitFullscreen()){}window.close();container.removeView(web);rotation.restore();web.stopLoading();web.destroy();}
 }

@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
 
-public final class MainActivity extends Activity {
+public final class MainActivity extends androidx.appcompat.app.AppCompatActivity {
     private final int bg=Ui.BG,panel=Ui.SURFACE,muted=Ui.MUTED;
     private final ExecutorService network = Executors.newSingleThreadExecutor();
     private final ThreadPoolExecutor images = new ThreadPoolExecutor(3,3,0,TimeUnit.SECONDS,new ArrayBlockingQueue<>(180),new ThreadPoolExecutor.DiscardPolicy());
@@ -21,6 +21,10 @@ public final class MainActivity extends Activity {
     };
     private LinearLayout content,address,socialFooter;
     private Button domainToggle;
+    private Favorites favorites;
+    private CastUi cast;
+    private boolean favoritesOnly;
+    private Button catalogueTab,favoritesTab;
     private TextView status;
     private EditText url, search;
     private Button load;
@@ -38,6 +42,7 @@ public final class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         EpisodeDownloadService.recover(this);
+        favorites=new Favorites(this);favoritesOnly=state!=null&&state.getBoolean("favorites_only");
         LinearLayout root = column(); root.setBackgroundColor(bg);
         root.setPadding(dp(18),dp(12),dp(18),0);
         root.setFocusableInTouchMode(true); root.requestFocus();
@@ -47,12 +52,18 @@ public final class MainActivity extends Activity {
         });
         setContentView(root); root.requestApplyInsets();
         LinearLayout masthead=new LinearLayout(this);masthead.setGravity(Gravity.CENTER_VERTICAL);
+        ImageView logo=new ImageView(this);logo.setImageResource(getApplicationInfo().icon);logo.setContentDescription("Logo ozozuz.tv");LinearLayout.LayoutParams logoParams=new LinearLayout.LayoutParams(dp(32),dp(32));logoParams.rightMargin=dp(9);masthead.addView(logo,logoParams);
         TextView brand=Ui.text(this,"",18,Ui.TEXT,true);brand.setSingleLine(true);brand.setEllipsize(TextUtils.TruncateAt.END);
         SpannableString wordmark=new SpannableString("ozozuz.tv");wordmark.setSpan(new android.text.style.ForegroundColorSpan(Ui.ACCENT),7,9,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);brand.setText(wordmark);
         masthead.addView(brand,new LinearLayout.LayoutParams(0,-2,1));
         domainToggle=button("dominio");Ui.navigation(domainToggle,false);domainToggle.setContentDescription("Mostra o nascondi indirizzo del catalogo");
-        masthead.addView(domainToggle,new LinearLayout.LayoutParams(-2,dp(44)));root.addView(masthead);
+        masthead.addView(domainToggle,new LinearLayout.LayoutParams(-2,dp(44)));cast=new CastUi(this,null,null);cast.addTo(masthead);root.addView(masthead);
         root.addView(Ui.rule(this),Ui.margin(this,-1,1,4,16));
+        LinearLayout tabs=new LinearLayout(this);catalogueTab=button("catalogo");favoritesTab=button("★ preferiti");
+        tabs.addView(catalogueTab,new LinearLayout.LayoutParams(0,dp(44),1));tabs.addView(favoritesTab,new LinearLayout.LayoutParams(0,dp(44),1));
+        Button downloadsTab=button("↓ download");Ui.navigation(downloadsTab,false);downloadsTab.setOnClickListener(v->startActivity(new android.content.Intent(this,DownloadsActivity.class)));tabs.addView(downloadsTab,new LinearLayout.LayoutParams(0,dp(44),1));root.addView(tabs,Ui.margin(this,-1,44,0,8));
+        catalogueTab.setOnClickListener(v->{favoritesOnly=false;updateTabs();scheduleSearch();});
+        favoritesTab.setOnClickListener(v->{favoritesOnly=true;updateTabs();scheduleSearch();});updateTabs();
         address = new LinearLayout(this); address.setGravity(Gravity.CENTER_VERTICAL); address.setPadding(0,0,0,dp(12));
         url = input("URL HTTPS della home"); url.setSingleLine(true); url.setInputType(17); url.setTypeface(Typeface.MONOSPACE); url.setTextSize(12);
         url.setText(getPreferences(0).getString("origin","https://streamingcommunityz.build/"));
@@ -61,7 +72,7 @@ public final class MainActivity extends Activity {
         address.setVisibility(View.GONE);
         domainToggle.setOnClickListener(v->showAddress(address.getVisibility()!=View.VISIBLE));
         load.setOnClickListener(v -> fetch());
-        search = input("Cerca film e serie TV…"); search.setSingleLine(true); search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH); root.addView(search,Ui.margin(this,-1,48,4,12));
+        search = input(favoritesOnly?"Cerca nei preferiti…":"Cerca film e serie TV…"); search.setSingleLine(true); search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH); root.addView(search,Ui.margin(this,-1,48,4,12));
         search.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s,int start,int count,int after) {}
             public void onTextChanged(CharSequence s,int start,int before,int count) { scheduleSearch(); }
@@ -89,7 +100,7 @@ public final class MainActivity extends Activity {
             Button link=button(entry[0]);Ui.navigation(link,false);link.setPadding(dp(6),0,dp(6),0);link.setContentDescription(entry[2]+". Apre il browser");
             link.setOnClickListener(v->openProfile(entry[1]));socialLinks.addView(link,new LinearLayout.LayoutParams(0,dp(44),1));
         }
-        socialFooter.addView(socialLinks);root.addView(socialFooter);
+        socialFooter.addView(socialLinks);root.addView(socialFooter);cast.mini(root);
         fetch();
     }
 
@@ -99,6 +110,11 @@ public final class MainActivity extends Activity {
     }
     private void showAddress(boolean open){
         address.setVisibility(open?View.VISIBLE:View.GONE);domainToggle.setText(open?"[dominio]":"dominio");Ui.navigation(domainToggle,open);
+    }
+    private void updateTabs(){
+        Ui.navigation(catalogueTab,!favoritesOnly);Ui.navigation(favoritesTab,favoritesOnly);
+        catalogueTab.setText(favoritesOnly?"catalogo":"[catalogo]");favoritesTab.setText(favoritesOnly?"[★ preferiti]":"★ preferiti");
+        if(search!=null)search.setHint(favoritesOnly?"Cerca nei preferiti…":"Cerca film e serie TV…");
     }
     private void updateFilters(){
         for(Map.Entry<String,Button> item:filterButtons.entrySet()){
@@ -114,7 +130,7 @@ public final class MainActivity extends Activity {
         searchVersion++; searchHandler.removeCallbacksAndMessages(null); searches.getQueue().clear();
         searchHome=null; searching=false; searchError="";
         final int request=++generation;
-        home=null; content.removeAllViews(); images.getQueue().clear(); load.setEnabled(false);
+        home=null; render(); images.getQueue().clear(); load.setEnabled(false);
         status.setText("Caricamento del catalogo…");
         network.execute(()->{
             try {
@@ -129,6 +145,7 @@ public final class MainActivity extends Activity {
                 runOnUiThread(()->{
                     if(isDestroyed() || request!=generation) return;
                     load.setEnabled(true); showAddress(true); status.setText("Caricamento non riuscito");
+                    if(favoritesOnly){render();return;}
                     content.addView(text(e.getMessage()==null ? "Errore di rete. Riprova." : e.getMessage(),16,muted));
                     content.addView(text("Puoi cambiare dominio qui sopra e premere Carica.",14,muted));
                 });
@@ -141,7 +158,7 @@ public final class MainActivity extends Activity {
         searchHandler.removeCallbacksAndMessages(null); searches.getQueue().clear();
         searchHome=null; searchError="";
         String query=search.getText().toString().trim();
-        searching=query.length()>=2 && currentOrigin!=null;
+        searching=!favoritesOnly && query.length()>=2 && currentOrigin!=null;
         render();
         if(!searching) return;
         final URI origin=currentOrigin; final int request=generation;
@@ -168,9 +185,19 @@ public final class MainActivity extends Activity {
     private void render() {
         if(content==null) return;
         String query=search.getText().toString().trim();
-        if(socialFooter!=null)socialFooter.setVisibility(query.isEmpty()?View.VISIBLE:View.GONE);
+        if(socialFooter!=null)socialFooter.setVisibility(query.isEmpty()&&!favoritesOnly?View.VISIBLE:View.GONE);
         HomeParser.Home displayed=query.isEmpty()?home:searchHome;
         content.removeAllViews(); images.getQueue().clear();
+        if(favoritesOnly){
+            if(currentOrigin==null)return;
+            List<HomeParser.Title> saved=favorites.all(currentOrigin);List<HomeParser.Title> filtered=new ArrayList<>();
+            for(HomeParser.Title t:saved)if(matches(t)&&t.name().toLowerCase(Locale.ROOT).contains(query.toLowerCase(Locale.ROOT)))filtered.add(t);
+            status.setText("preferiti · "+saved.size());content.addView(Ui.section(this,"la tua lista",18),Ui.margin(this,-1,-2,12,16));
+            if(saved.isEmpty()){content.addView(text("Nessun preferito. Tocca ☆ su un film o una serie per salvarlo qui.",15,muted));return;}
+            if(filtered.isEmpty()){content.addView(text("Nessun preferito con questi filtri.",15,muted));return;}
+            for(int i=0;i<filtered.size();i+=2){LinearLayout row=new LinearLayout(this);for(int j=i;j<Math.min(i+2,filtered.size());j++){View c=card(filtered.get(j));c.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));row.addView(c);}if(i+1==filtered.size())row.addView(new View(this),new LinearLayout.LayoutParams(0,1,1));content.addView(row,Ui.margin(this,-1,-2,0,18));}return;
+        }
+        if(currentOrigin!=null&&!searching&&searchError.isEmpty())status.setText(currentOrigin.getHost());
         if(!query.isEmpty() && query.length()<2) {content.addView(text("Scrivi almeno 2 caratteri per cercare nel catalogo.",16,muted)); return;}
         if(searching) {content.addView(text("Ricerca nel catalogo…",16,muted)); return;}
         if(!searchError.isEmpty()) {content.addView(text(searchError,16,muted)); return;}
@@ -200,7 +227,11 @@ public final class MainActivity extends Activity {
     private View card(HomeParser.Title title) {
         LinearLayout card=column(); card.setPadding(0,0,dp(12),0); card.setLayoutParams(new LinearLayout.LayoutParams(dp(146),-2));
         ImageView image=new ImageView(this); image.setBackground(shape(panel)); image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        image.setClipToOutline(true); image.setContentDescription("Copertina: "+title.name()); card.addView(image,new LinearLayout.LayoutParams(-1,dp(196)));
+        image.setClipToOutline(true); image.setContentDescription("Copertina: "+title.name());
+        FrameLayout cover=new FrameLayout(this);cover.addView(image,new FrameLayout.LayoutParams(-1,-1));
+        boolean saved=favorites.contains(title.id());ImageButton star=Ui.iconButton(this,saved?R.drawable.ic_star_filled:R.drawable.ic_star_outline,(saved?"Rimuovi dai preferiti: ":"Aggiungi ai preferiti: ")+title.name());Ui.selection(star,saved);star.setBackground(Ui.ripple(this,0xe00c0e10,0,3));
+        FrameLayout.LayoutParams favoriteParams=new FrameLayout.LayoutParams(dp(44),dp(44),Gravity.RIGHT|Gravity.TOP);cover.addView(star,favoriteParams);
+        star.setOnClickListener(v->{favorites.toggle(title,currentOrigin);render();});card.addView(cover,new LinearLayout.LayoutParams(-1,dp(196)));
         image(image,title.poster());
         TextView name=Ui.text(this,title.name(),13,Ui.TEXT,true); name.setMaxLines(2); name.setEllipsize(TextUtils.TruncateAt.END); name.setPadding(0,dp(8),0,0); card.addView(name);
         String kind=title.type().equals("tv") ? "Serie TV" : title.type().equals("movie") ? "Film" : "Titolo";
@@ -233,6 +264,7 @@ public final class MainActivity extends Activity {
         if(currentOrigin==null)return;
         android.content.Intent intent=new android.content.Intent(this,TitleActivity.class);
         intent.putExtra("origin",currentOrigin.toString());intent.putExtra("id",t.id());intent.putExtra("slug",t.slug());
+        intent.putExtra("poster",t.poster());intent.putExtra("score",t.score());
         startActivity(intent);
     }
     private LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
@@ -241,5 +273,8 @@ public final class MainActivity extends Activity {
     private Button button(String label){return Ui.button(this,label,false);}
     private GradientDrawable shape(int color){return Ui.surface(this,color,Ui.BORDER,4);}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
+    @Override protected void onResume(){super.onResume();if(cast!=null)cast.resume();if(content!=null)render();}
+    @Override protected void onPause(){if(cast!=null)cast.pause();super.onPause();}
+    @Override protected void onSaveInstanceState(Bundle state){state.putBoolean("favorites_only",favoritesOnly);super.onSaveInstanceState(state);}
     @Override protected void onDestroy(){generation++;searchVersion++;searchHandler.removeCallbacksAndMessages(null);searches.shutdownNow();network.shutdownNow();images.shutdownNow();super.onDestroy();}
 }

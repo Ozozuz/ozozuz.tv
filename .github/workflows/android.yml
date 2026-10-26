@@ -26,10 +26,6 @@ jobs:
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Tests and Android build
         run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
-      - name: Verify the prebuilt APK
-        run: |
-          (cd apk && sha256sum -c SHA256SUMS)
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose apk/ozozuz-tv-v0.7.0.apk
       - uses: actions/upload-artifact@v4
         with:
           name: ozozuz-tv-debug-apk
@@ -40,17 +36,3 @@ jobs:
           name: unit-test-results
           path: app/build/test-results/testDebugUnitTest
           if-no-files-found: ignore
-
-  release:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Publish current APK if this version has no release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: ./tools/publish-release.sh

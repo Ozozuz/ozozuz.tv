@@ -1,11 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <application android:theme="@style/AppTheme" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true" android:enableOnBackInvokedCallback="false">
-        <activity android:name=".DownloadedVideoActivity" android:exported="false" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <application android:theme="@style/AppTheme" android:label="${appLabel}" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true" android:enableOnBackInvokedCallback="false">
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.downloads" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/download_paths" />
+        </provider>
+        <meta-data android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME" android:value="it.reozoz.streamclean.CastOptionsProvider" />
+        <activity android:name=".CastPlaybackActivity" android:exported="false" />
+        <service android:name=".CastRelayService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
+        <activity android:name=".DownloadedVideoActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" />
+        <activity android:name=".DownloadsActivity" android:exported="false" />
         <service android:name=".EpisodeDownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
         <activity android:name=".TitleActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" />
         <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="stateAlwaysHidden|adjustResize">

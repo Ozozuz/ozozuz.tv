@@ -18,6 +18,12 @@ import javax.net.ssl.HttpsURLConnection;
 
 /** Downloads bounded VOD tracks, then losslessly remuxes them into an ordinary MP4. */
 final class EpisodeDownloadEngine {
+    static void cleanupInterrupted(Context context){
+        Set<File> parents=new HashSet<>();parents.add(context.getFilesDir());File external=context.getExternalFilesDir(Environment.DIRECTORY_MOVIES);if(external!=null)parents.add(external);
+        for(File parent:parents){File[] dirs=parent.listFiles();if(dirs==null)continue;for(File dir:dirs)if(dir.isDirectory()&&dir.getName().matches("episode-[a-fA-F0-9-]{36}")){
+            new File(dir,"video.bin").delete();new File(dir,"audio.bin").delete();dir.delete();
+        }}
+    }
     interface Progress {void update(int percent,String message);}
     private final Context context;
     private final PlaybackSnapshot snapshot;
@@ -29,11 +35,11 @@ final class EpisodeDownloadEngine {
     private File temp;
     EpisodeDownloadEngine(Context c,PlaybackSnapshot s,AtomicBoolean stop,Progress p){context=c;snapshot=s;cancelled=stop;progress=p;}
     void run(Uri destination)throws Exception{
-        File parent=context.getExternalFilesDir(Environment.DIRECTORY_MOVIES);if(parent==null)parent=context.getFilesDir();
+        File parent=context.getFilesDir();
         temp=new File(parent,"episode-"+UUID.randomUUID());if(!temp.mkdirs())throw new IOException("Spazio temporaneo non disponibile.");
         try(ParcelFileDescriptor output=context.getContentResolver().openFileDescriptor(destination,"rw")){
             if(output==null)throw new IOException("File di destinazione non disponibile.");
-            try{Os.lseek(output.getFileDescriptor(),0,OsConstants.SEEK_CUR);}catch(ErrnoException e){throw new IOException("Scegli una cartella locale: questa destinazione non consente la creazione di un MP4.");}
+            try{Os.lseek(output.getFileDescriptor(),0,OsConstants.SEEK_CUR);}catch(ErrnoException e){throw new IOException("Lo spazio download non consente la creazione del file MP4.");}
             scope.registerRedirect(snapshot.initial(),snapshot.source());scope.registerPlaylist(snapshot.source(),snapshot.manifest());
             HlsDownloadPlan.Selection choice=HlsDownloadPlan.select(snapshot.source(),snapshot.manifest());
             List<HlsDownloadPlan.Part> video=playlist(choice.video());List<HlsDownloadPlan.Part> audio=choice.audio()==null?Collections.emptyList():playlist(choice.audio());
