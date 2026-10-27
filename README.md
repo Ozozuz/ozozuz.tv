@@ -34,7 +34,12 @@ The app supervises my clicks; the branding department remains unsupervised.
 
 ## Get It Running
 
-**Android 8.0+** · **0.10.0** · Sources only; no prebuilt APK in this tree.
+**Android 8.0+** · **0.10.0**
+
+Grab [the APK from Releases](https://github.com/Ozozuz/ozozuz.tv/releases/latest).
+The casino is not included.
+
+## Build
 
 Build with JDK 17, Android SDK 35 and the included Gradle wrapper:
 
@@ -42,8 +47,8 @@ Build with JDK 17, Android SDK 35 and the included Gradle wrapper:
 ./gradlew testDebugUnitTest assembleDebug
 ```
 
-Install `app/build/outputs/apk/debug/app-debug.apk`, or grab the debug APK from a
-successful [Actions run](https://github.com/Ozozuz/ozozuz.tv/actions).
+Install `app/build/outputs/apk/debug/app-debug.apk`. CI builds, tests and publishes
+the debug APK and checksum to Releases for each new version on `main`.
 Updating an existing installation requires the same signing key.
 
 For the technical rabbit hole: [Android notes](docs/ANDROID.md) ·

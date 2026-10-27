@@ -26,13 +26,37 @@ jobs:
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Tests and Android build
         run: ./gradlew --no-daemon testDebugUnitTest assembleDebug lintDebug
+      - name: Verify the built APK
+        run: '"$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk'
       - uses: actions/upload-artifact@v4
         with:
           name: ozozuz-tv-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: unit-test-results
           path: app/build/test-results/testDebugUnitTest
           if-no-files-found: ignore
+
+  release:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ozozuz-tv-debug-apk
+          path: app/build/outputs/apk/debug
+      - name: Publish the built APK and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: ./tools/publish-release.sh

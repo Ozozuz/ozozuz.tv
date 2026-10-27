@@ -233,3 +233,9 @@
 - Verified the generated debug APK signature, package `it.reozoz.streamclean.preview`, versionName `0.10.0`, versionCode `17`, minSdk 26 and targetSdk 35.
 - Restored `packages: platform-tools` in Android CI and added lint to its build command. Shortened the README to the earlier informal style.
 - Physical playback, fullscreen gestures, download completion and Chromecast remain unverified on real hardware. Automated tests and static review do not establish device behavior.
+
+## 2026-10-27 — automatic GitHub release publication
+
+- Release job consumes the same debug APK artifact built, tested, linted and signature-verified by its prerequisite build job.
+- Publication script checks the built APK, generates a versioned filename and SHA-256 checksum, and targets the workflow's exact source commit. Existing versions are skipped without modifying assets.
+- Local publication-script checks used a mock GitHub CLI: verified APK byte equality, checksum, version/tag and target commit; verified an existing release is untouched and a missing APK prevents publication.

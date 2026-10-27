@@ -23,9 +23,9 @@ Reviewed and built on 2026-10-27 with JDK 17, Gradle 8.13 and Android SDK 35:
 
 No physical phone/Chromecast validation was performed. Existing results through 0.9.3 remain historical; the checks above validate this source snapshot's build and automated tests.
 
-No prebuilt APK is checked into this source tree. A debug APK was generated during review; successful GitHub Actions runs also publish it as an artifact. Signing keys, local configuration, build outputs and caches are excluded from the repository.
+No prebuilt APK is checked into this source tree. The GitHub workflow builds a debug APK and publishes it with a SHA-256 checksum to Releases for each new application version on `main`. Successful builds also retain the APK as an Actions artifact. Signing keys, local configuration, build outputs and caches are excluded from the repository.
 
-The GitHub workflow builds/tests/lints sources and uploads the newly built debug APK. Android setup explicitly installs `platform-tools`, avoiding the obsolete `tools` package. Prebuilt-APK checks and automatic release publication remain disabled for this source-only snapshot. tools/publish-release.sh is retained but requires matching APK, checksum and release notes before use. A CI debug key cannot update an existing installation signed with a different key.
+The GitHub workflow builds/tests/lints sources and verifies the built APK signature before uploading it. Android setup explicitly installs `platform-tools`, avoiding the obsolete `tools` package. The release job downloads that exact build artifact and runs `tools/publish-release.sh`, which generates the versioned APK filename and checksum, uses the version's release notes, and tags the tested source commit. Existing releases are left unchanged. A CI debug key cannot update an existing installation signed with a different key.
 
 Build with JDK 17, Android SDK 35 and the included Gradle wrapper:
 
