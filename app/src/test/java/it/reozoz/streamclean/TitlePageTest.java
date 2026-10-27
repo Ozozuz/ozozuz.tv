@@ -75,7 +75,13 @@ public class TitlePageTest {
             TitleActivity activity=controller.get();View decor=layout(activity);
             View button=find(decor,v->v instanceof TextView&&"↓ stagione".contentEquals(((TextView)v).getText()));assertNotNull(button);button.performClick();
             Intent service=Shadows.shadowOf(RuntimeEnvironment.getApplication()).getNextStartedService();assertNotNull(service);assertEquals(EpisodeDownloadService.class.getName(),service.getComponent().getClassName());
-            assertEquals("season",service.getAction());assertFalse(service.hasExtra("folder"));assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
+            assertEquals("season",service.getAction());assertFalse(service.hasExtra("folder"));
+            Intent started=Shadows.shadowOf(activity).getNextStartedActivity();
+            if(android.os.Build.VERSION.SDK_INT>=33){
+                assertNotNull(started);assertEquals("android.content.pm.action.REQUEST_PERMISSIONS",started.getAction());
+                assertArrayEquals(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},Shadows.shadowOf(activity).getLastRequestedPermission().requestedPermissions);
+            }else assertNull(started);
+            assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
         }
     }
     @Test @Config(sdk=35,qualifiers="w360dp-h800dp-xhdpi") @GraphicsMode(GraphicsMode.Mode.NATIVE)

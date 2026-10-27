@@ -224,3 +224,12 @@
   APK signature verified with certificate SHA-256:
   85a0002112ce7231044f1fa791d67826addeb28de97df5221c2a83a0bd3a798e.
 - APK SHA-256: fbb90152c3f48b477aaf459ddd67c332667909dba7b32ce2f215a64ade5c1368. No emulator was started.
+
+## 2026-10-27 — 0.10.0 publication review
+
+- Compared the supplied source tree with GitHub `main` at `3960177`; application sources already matched the imported 0.10.0 snapshot.
+- Reproduced its three failing tests. Fixed the offline-player test's FileProvider initialization and the season-download test's handling of the notification permission prompt; no assertions were disabled.
+- JDK 17 / Gradle 8.13 / SDK 35: `testDebugUnitTest assembleDebug lintDebug` succeeded. All 89 tests passed, with no errors or skips. Lint reported zero errors and 48 warnings.
+- Verified the generated debug APK signature, package `it.reozoz.streamclean.preview`, versionName `0.10.0`, versionCode `17`, minSdk 26 and targetSdk 35.
+- Restored `packages: platform-tools` in Android CI and added lint to its build command. Shortened the README to the earlier informal style.
+- Physical playback, fullscreen gestures, download completion and Chromecast remain unverified on real hardware. Automated tests and static review do not establish device behavior.

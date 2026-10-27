@@ -14,11 +14,18 @@ Package remains it.reozoz.streamclean.preview; launcher label remains ozozuz.tv.
 
 ## Verification status
 
-Source structure, XML, archive integrity and packaging were checked. This snapshot has NOT been compiled or run through Gradle tests in this session. No device/Chromecast validation was performed. Existing VALIDATION.md results through 0.9.3 are historical, not validation of 0.10.0.
+Reviewed and built on 2026-10-27 with JDK 17, Gradle 8.13 and Android SDK 35:
 
-No 0.10.0 APK is available in the recovered workspace. The older 0.9.3 APK and its checksum are deliberately omitted. Signing keys, local configuration, build outputs and caches are omitted.
+- `testDebugUnitTest`: 89 tests, no failures, errors or skipped tests.
+- `assembleDebug`: successful; APK version 0.10.0 / versionCode 17 and debug signature verified.
+- `lintDebug`: no errors; 48 warnings remain, primarily UI/localization and maintenance suggestions.
+- Two Robolectric fixtures were corrected: FileProvider initialization in the offline-player test, and recognition of the Android 13+ notification permission prompt in the season-download test.
 
-The packaged GitHub workflow builds/tests sources and uploads the newly built debug APK; prebuilt-APK checks and automatic release publication are disabled for this source-only snapshot. tools/publish-release.sh is retained but requires matching APK, checksum and release notes before use. A CI debug key cannot update an existing installation signed with a different key.
+No physical phone/Chromecast validation was performed. Existing results through 0.9.3 remain historical; the checks above validate this source snapshot's build and automated tests.
+
+No prebuilt APK is checked into this source tree. A debug APK was generated during review; successful GitHub Actions runs also publish it as an artifact. Signing keys, local configuration, build outputs and caches are excluded from the repository.
+
+The GitHub workflow builds/tests/lints sources and uploads the newly built debug APK. Android setup explicitly installs `platform-tools`, avoiding the obsolete `tools` package. Prebuilt-APK checks and automatic release publication remain disabled for this source-only snapshot. tools/publish-release.sh is retained but requires matching APK, checksum and release notes before use. A CI debug key cannot update an existing installation signed with a different key.
 
 Build with JDK 17, Android SDK 35 and the included Gradle wrapper:
 
@@ -26,4 +33,4 @@ Build with JDK 17, Android SDK 35 and the included Gradle wrapper:
 ./gradlew testDebugUnitTest assembleDebug lintDebug
 ```
 
-No application Java/resource files were changed while packaging this snapshot. README/release status and CI packaging metadata were updated to avoid claiming an available 0.10.0 APK.
+The publication review changed documentation, test fixtures and CI configuration. Application Java/resources retain the supplied 0.10.0 implementation.

@@ -25,7 +25,7 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - name: Tests and Android build
-        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug lintDebug
       - uses: actions/upload-artifact@v4
         with:
           name: ozozuz-tv-debug-apk

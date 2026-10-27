@@ -50,7 +50,13 @@ public class PlaybackWindowTest {
         if(predicate.test(view))return view;if(view instanceof ViewGroup group)for(int i=0;i<group.getChildCount();i++){View found=find(group.getChildAt(i),predicate);if(found!=null)return found;}return null;
     }
     @Test public void offlineFullscreenKeepsTheVideoSurfaceAttached()throws Exception{
-        android.content.Context app=RuntimeEnvironment.getApplication();ManagedDownloads.Output output=ManagedDownloads.prepare(app,42,11,28759);
+        android.content.Context app=RuntimeEnvironment.getApplication();
+        String authority=app.getPackageName()+".downloads";
+        android.content.pm.ProviderInfo info=app.getPackageManager().resolveContentProvider(authority,android.content.pm.PackageManager.GET_META_DATA);
+        assertNotNull(info);
+        androidx.core.content.FileProvider provider=new androidx.core.content.FileProvider();provider.attachInfo(app,info);
+        org.robolectric.shadows.ShadowContentResolver.registerProviderInternal(authority,provider);
+        ManagedDownloads.Output output=ManagedDownloads.prepare(app,42,11,28759);
         try(java.io.FileOutputStream out=new java.io.FileOutputStream(output.temporary())){out.write(new byte[]{1,2,3,4});}
         android.net.Uri uri=ManagedDownloads.complete(app,output);
         try(ActivityController<DownloadedVideoActivity> c=Robolectric.buildActivity(DownloadedVideoActivity.class,DownloadedVideoActivity.open(app,"42:28759","South Park",uri)).setup()){
