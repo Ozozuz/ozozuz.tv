@@ -57,7 +57,8 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
         SpannableString wordmark=new SpannableString("ozozuz.tv");wordmark.setSpan(new android.text.style.ForegroundColorSpan(Ui.ACCENT),7,9,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);brand.setText(wordmark);
         masthead.addView(brand,new LinearLayout.LayoutParams(0,-2,1));
         domainToggle=button("dominio");Ui.navigation(domainToggle,false);domainToggle.setContentDescription("Mostra o nascondi indirizzo del catalogo");
-        masthead.addView(domainToggle,new LinearLayout.LayoutParams(-2,dp(44)));cast=new CastUi(this,null,null);cast.addTo(masthead);root.addView(masthead);
+        masthead.addView(domainToggle,new LinearLayout.LayoutParams(-2,dp(44)));
+        ImageButton settings=Ui.iconButton(this,R.drawable.ic_settings,"Impostazioni riproduzione");settings.setOnClickListener(v->startActivity(new android.content.Intent(this,PlaybackSettingsActivity.class)));masthead.addView(settings,new LinearLayout.LayoutParams(dp(44),dp(44)));cast=new CastUi(this,null,null);cast.addTo(masthead);root.addView(masthead);
         root.addView(Ui.rule(this),Ui.margin(this,-1,1,4,16));
         LinearLayout tabs=new LinearLayout(this);catalogueTab=button("catalogo");favoritesTab=button("★ preferiti");
         tabs.addView(catalogueTab,new LinearLayout.LayoutParams(0,dp(44),1));tabs.addView(favoritesTab,new LinearLayout.LayoutParams(0,dp(44),1));

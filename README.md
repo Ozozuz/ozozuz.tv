@@ -21,6 +21,7 @@ Ho aperto un casinò.
 
 - Browse and search films and series without playing "guess the real Play button".
 - Watch fullscreen with automatic landscape rotation and keep the screen awake during playback.
+- Set global online-player defaults for audio and subtitles; English audio and Italian subtitles are selected when available.
 - Save favourites and mark episodes as **Già vista**. Memory has been outsourced.
 - Reopen each series at the last episode and season you opened, including from favourites.
 - Download episodes or whole seasons; manage and play them inside the app.
@@ -35,7 +36,7 @@ The app supervises my clicks; the branding department remains unsupervised.
 
 ## Get It Running
 
-**Android 8.0+** · **0.10.2**
+**Android 8.0+** · **0.10.3**
 
 Grab [the APK from Releases](https://github.com/Ozozuz/ozozuz.tv/releases/latest).
 The casino is not included.
@@ -53,4 +54,4 @@ the debug APK and checksum to Releases for each new version on `main`.
 Updating an existing installation requires the same signing key.
 
 For the technical rabbit hole: [Android notes](docs/ANDROID.md) ·
-[Source status](SOURCE_STATUS.md) · [Release notes](docs/releases/v0.10.2.md).
+[Source status](SOURCE_STATUS.md) · [Release notes](docs/releases/v0.10.3.md).

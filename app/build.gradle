@@ -7,7 +7,7 @@ android {
         // Keep the existing installed identity so 0.8/0.9 data survives updates.
         applicationId 'it.reozoz.streamclean.preview'
         manifestPlaceholders = [appLabel: 'ozozuz.tv']
-        minSdk 26; targetSdk 35; versionCode 19; versionName '0.10.2'
+        minSdk 26; targetSdk 35; versionCode 20; versionName '0.10.3'
     }
     // Reuse the local development signer when available; otherwise Gradle creates
     // its standard user-local debug key. No signing key is committed.
@@ -34,6 +34,7 @@ android {
 }
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.webkit:webkit:1.12.1'
     implementation 'androidx.mediarouter:mediarouter:1.8.0'
     implementation 'com.google.android.gms:play-services-cast-framework:22.3.1'
     implementation 'org.jsoup:jsoup:1.22.1'

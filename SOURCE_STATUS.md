@@ -1,4 +1,52 @@
-# ozozuz.tv 0.10.2 — source snapshot
+# ozozuz.tv 0.10.3 — source snapshot
+
+VersionName 0.10.3 / versionCode 20; installed package remains
+`it.reozoz.streamclean.preview`.
+
+## Global online-player language defaults
+
+- The home toolbar opens native playback settings for preferred audio and subtitle
+  languages. First use selects English audio and Italian subtitles. Independent
+  provider-default options and subtitles-off are available; choices persist locally.
+- A document-start script is registered only for `https://vixcloud.cc` and checks
+  the embed path. It selects supported tracks through the provider's JW Player API
+  (`getAudioTracks`, `setCurrentAudioTrack`, `getCaptionsList`, `setCurrentCaptions`).
+  The actual provider currently serves JW Player 8.36.4; its shipped API was checked.
+- Matching recognizes language codes, regional/ISO 639 variants, and language
+  labels such as English [CC] and Italian. Audio and captions are handled
+  independently, including delayed track discovery. Absent preferred tracks keep
+  the video defaults. Each frame applies a preference once per category, preserving
+  subsequent in-player manual choices and applying a fresh snapshot on the next video.
+- The script waits for actual player setup, uses no native JavaScript interface,
+  and does not widen player resource or navigation permissions. WebViews without
+  DOCUMENT_START_SCRIPT keep normal playback and show an update hint in settings.
+- Native MP4 downloads and Cast retain their existing language controls.
+
+## Verification — 2026-11-03
+
+- `testDebugUnitTest`: 132 tests; no failures, errors or skipped tests.
+- `node --test tools/test-player-preferences.mjs`: 11 passing script tests; run in CI as well.
+- `assembleDebug`: successful; APK signature verified and packaged script compared with the tested source.
+- `lintDebug`: no errors, 50 warnings.
+- Robolectric settings and persistence coverage on Android APIs 26 and 35; node VM tests cover the JW track API, delayed discovery, independent defaults, missing languages, subtitles off, origin restriction and manual overrides.
+
+A headless browser loaded the actual JW Player 8.36.4 API and confirmed the embed
+setup structure. Its remote media stream was unavailable (provider error 233011),
+so a live full-playback track-switch test and physical-phone validation were not
+completed. Automated tests cover track selection, defaults, persistence and manual
+overrides independently of the provider network.
+
+## APK signing
+
+The previous environment's signing key was not present after the environment was
+recreated. The locally built 0.10.3 APK has a different certificate from the
+previously attached 0.10.2 APK and cannot replace that installation in place.
+The new development key is preserved separately and excluded from git. Keeping
+existing app data during an in-place update still requires the previous signing key.
+
+---
+
+## Historical 0.10.2 source snapshot
 
 VersionName 0.10.2 / versionCode 19; installed package unchanged.
 

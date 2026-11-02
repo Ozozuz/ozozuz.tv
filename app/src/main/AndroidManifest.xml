@@ -15,6 +15,7 @@
         <activity android:name=".CastPlaybackActivity" android:exported="false" />
         <service android:name=".CastRelayService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <activity android:name=".DownloadedVideoActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" />
+        <activity android:name=".PlaybackSettingsActivity" android:exported="false" />
         <activity android:name=".DownloadsActivity" android:exported="false" />
         <service android:name=".EpisodeDownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
         <activity android:name=".TitleActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" />

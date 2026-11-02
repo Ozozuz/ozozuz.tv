@@ -16,6 +16,7 @@ final class EmbeddedPlayer {
     private final TextView status;
     private final WebView web;
     private View fullscreen;
+    private androidx.webkit.ScriptHandler languageScript;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
     private final FullscreenFrame appFullscreen;
     private final PlaybackWindow window;
@@ -79,7 +80,15 @@ final class EmbeddedPlayer {
         });
         container.addView(web,new FrameLayout.LayoutParams(-1,-1));
     }
+    static boolean supportsLanguageDefaults(){try{return androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT);}catch(RuntimeException unsupported){return false;}}
+    private void languageDefaults(){
+        if(languageScript!=null){languageScript.remove();languageScript=null;}
+        if(!supportsLanguageDefaults())return;
+        try{languageScript=androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web,new PlaybackPreferences(activity).script(activity),java.util.Collections.singleton("https://vixcloud.cc"));}
+        catch(java.io.IOException ignored){/* Playback remains available if preferences cannot be loaded. */}
+    }
     void load(TitleParser.Player source) {
+        languageDefaults();
         window.awake(true);media=new MediaAllowlist();downloadSource=null;embed=source.embed().toString();
         String html="<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><meta http-equiv='Content-Security-Policy' content=\"default-src 'none'; frame-src https://vixcloud.cc; style-src 'unsafe-inline'\"><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#000;overflow:hidden}</style></head><body><iframe src=\""+android.text.TextUtils.htmlEncode(embed)+"\" allow='autoplay; fullscreen; picture-in-picture' allowfullscreen></iframe></body></html>";
         web.loadDataWithBaseURL(source.page().toString(),html,"text/html","UTF-8",null);
@@ -102,5 +111,5 @@ final class EmbeddedPlayer {
     }
     void pause(){window.pause();web.onPause();}
     void resume(){window.resume();web.onResume();}
-    void destroy(){while(exitFullscreen()){}window.close();container.removeView(web);rotation.restore();web.stopLoading();web.destroy();}
+    void destroy(){if(languageScript!=null){languageScript.remove();languageScript=null;}while(exitFullscreen()){}window.close();container.removeView(web);rotation.restore();web.stopLoading();web.destroy();}
 }
