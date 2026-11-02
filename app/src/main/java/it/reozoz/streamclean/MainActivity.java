@@ -66,7 +66,7 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
         favoritesTab.setOnClickListener(v->{favoritesOnly=true;updateTabs();scheduleSearch();});updateTabs();
         address = new LinearLayout(this); address.setGravity(Gravity.CENTER_VERTICAL); address.setPadding(0,0,0,dp(12));
         url = input("URL HTTPS della home"); url.setSingleLine(true); url.setInputType(17); url.setTypeface(Typeface.MONOSPACE); url.setTextSize(12);
-        url.setText(getPreferences(0).getString("origin","https://streamingcommunityz.build/"));
+        url.setText(getPreferences(0).getString("origin",DomainResolver.DEFAULT_ORIGIN.toString()));
         address.addView(url,new LinearLayout.LayoutParams(0,dp(46),1));
         load = button("Carica"); LinearLayout.LayoutParams loadParams=new LinearLayout.LayoutParams(-2,dp(46)); loadParams.leftMargin=dp(8); address.addView(load,loadParams); root.addView(address);
         address.setVisibility(View.GONE);

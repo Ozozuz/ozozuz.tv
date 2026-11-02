@@ -22,8 +22,9 @@ public class DomainUpdateTest {
     public static class Catalog {
         static boolean fail;
         static volatile boolean called;
+        static volatile URI requested;
         @Implementation public static DomainResolver.Resolved resolveHome(URI origin)throws Exception{
-            called=true;
+            requested=origin;called=true;
             if(fail)throw new java.io.IOException("Invalid catalog");
             return new DomainResolver.Resolved(URI.create("https://new.invalid/"),new HomeParser.Home(null,List.of(),"cdn.new.invalid"));
         }
@@ -59,4 +60,13 @@ public class DomainUpdateTest {
             assertEquals("https://old.invalid/",activity.getPreferences(0).getString("origin",""));
         }
     }
+    @Test public void freshInstallStartsFromCurrentDefault()throws Exception{
+        Catalog.fail=false;Catalog.called=false;Catalog.requested=null;
+        try(var controller=Robolectric.buildActivity(MainActivity.class)){
+            var activity=controller.get();activity.getPreferences(0).edit().clear().commit();
+            controller.setup();finishLoad(activity);
+            assertEquals(DomainResolver.DEFAULT_ORIGIN,Catalog.requested);
+        }
+    }
+
 }

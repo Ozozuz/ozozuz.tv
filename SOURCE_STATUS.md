@@ -1,4 +1,37 @@
-# ozozuz.tv 0.10.1 — source snapshot
+# ozozuz.tv 0.10.2 — source snapshot
+
+VersionName 0.10.2 / versionCode 19; installed package unchanged.
+
+## Home-only domain resolution
+
+The `.build/127.0.0.1:443` failure precedes HTTP. Verification confirmed that
+`.build` returns HTTP 301 to `https://streamingcommunityz.boo/` when reachable.
+
+- Only the home/domain bootstrap uses OkHttp with system DNS and an HTTPS DNS
+  fallback when system lookup fails or returns unusable addresses such as loopback.
+  TLS certificate and hostname verification remain enabled.
+- After the final home is recognized, MainActivity persists its origin and passes
+  it to the existing catalogue flows. Search, title pages, player discovery and
+  images keep the previous HttpsURLConnection client and its host restrictions.
+- No domain is guessed from a hardcoded fallback list. `.boo` is the new default
+  for fresh installations; saved domains continue through the home redirect flow.
+- The previous episode history and toolbar changes are retained.
+
+## Verification — 2026-11-02
+
+- `testDebugUnitTest`: 125 tests, zero failures/errors/skips.
+- `assembleDebug`: successful; 0.10.2 / code 19; APK signature verified and matches the previously attached 0.10.1 APK.
+- `lintDebug`: zero errors, 44 warnings.
+- Live JVM check: configured DNS-over-HTTPS recovered two usable addresses from a simulated system loopback answer. The production home client started at `.build` and resolved `.boo` with three catalogue sections.
+- Live search/title check with the unchanged client: South Park season 17 returned 10 episodes.
+- Confirmed that SafeHttp code before the home-only `domainPage` transport is byte-for-byte identical to 0.10.1.
+
+
+No physical-phone testing was performed. The CI/release process is unchanged.
+
+---
+
+## Historical 0.10.1 source snapshot
 
 Gradle declares versionName 0.10.1 and versionCode 18. The installed package remains
 `it.reozoz.streamclean.preview`.

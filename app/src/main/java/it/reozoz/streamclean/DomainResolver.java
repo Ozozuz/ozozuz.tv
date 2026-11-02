@@ -15,6 +15,7 @@ final class DomainResolver {
     record Response(int status,String location,String html) {}
     record Resolved(URI origin,HomeParser.Home home) {}
     interface Fetcher { Response fetch(URI uri) throws Exception; }
+    static final URI DEFAULT_ORIGIN=URI.create("https://streamingcommunityz.boo/");
     private static final int MAX_REDIRECTS=5;
     private static final Pattern REFRESH=Pattern.compile("(?is)^\\s*\\d+(?:\\.\\d+)?\\s*;\\s*url\\s*=\\s*(.+?)\\s*$");
     // Recognize only a complete static navigation statement, never evaluate site JavaScript.
