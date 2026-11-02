@@ -75,4 +75,29 @@ final class SafeHttp {
     static HomeParser.Home home(URI origin) throws Exception {
         return HomeParser.parse(new String(get(origin, Collections.singleton(origin.getHost()), 4 * 1024 * 1024, false), StandardCharsets.UTF_8), origin);
     }
+    static DomainResolver.Resolved resolveHome(URI origin) throws Exception {
+        return DomainResolver.resolve(origin,SafeHttp::domainPage);
+    }
+    private static DomainResolver.Response domainPage(URI uri) throws IOException {
+        DomainResolver.validate(uri);
+        HttpsURLConnection c=(HttpsURLConnection)uri.toURL().openConnection();
+        c.setInstanceFollowRedirects(false);c.setUseCaches(false);
+        c.setConnectTimeout(12000);c.setReadTimeout(18000);
+        c.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36");
+        c.setRequestProperty("Accept","text/html,application/xhtml+xml");
+        c.setRequestProperty("Cache-Control","no-cache");
+        try{
+            int status=c.getResponseCode();
+            if(status!=200)return new DomainResolver.Response(status,c.getHeaderField("Location"),"");
+            String type=Optional.ofNullable(c.getContentType()).orElse("").toLowerCase(Locale.ROOT).split(";")[0].trim();
+            if(!type.equals("text/html")&&!type.equals("application/xhtml+xml"))throw new IOException("Tipo di contenuto inatteso.");
+            int limit=4*1024*1024;
+            if(c.getContentLengthLong()>limit)throw new IOException("Risposta troppo grande.");
+            try(InputStream in=c.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){
+                byte[] buffer=new byte[8192];int count,total=0;
+                while((count=in.read(buffer))!=-1){total+=count;if(total>limit)throw new IOException("Risposta troppo grande.");out.write(buffer,0,count);}
+                return new DomainResolver.Response(status,null,out.toString(StandardCharsets.UTF_8.name()));
+            }
+        }finally{c.disconnect();}
+    }
 }

@@ -1,6 +1,36 @@
-# ozozuz.tv 0.10.0 — source snapshot
+# ozozuz.tv 0.10.1 — source snapshot
 
-Latest recovered source tree. Gradle declares versionName 0.10.0 and versionCode 17.
+Gradle declares versionName 0.10.1 and versionCode 18. The installed package remains
+`it.reozoz.streamclean.preview`.
+
+## Changes
+
+- Per-title playback history restores the last successfully opened episode and its season, including from favourites and across catalogue-domain changes. The last chronological opening wins, including earlier seasons and episodes. Browsing seasons, failed player requests and watched-checkbox changes do not replace this history.
+- Activity recreation also preserves the season currently being browsed. Missing seasons fall back to the catalogue default; missing episodes retain their season without overwriting saved history.
+- Home loading follows at most five HTTPS redirects, including HTTP redirects, HTML meta refresh and complete static JavaScript navigation statements. A new origin is persisted only after the existing home parser recognizes the final catalogue. Ordinary title, player and image requests retain their host restrictions. No JavaScript is evaluated during domain discovery.
+- The online title toolbar no longer contains the rotation button. The provider's fullscreen control retains automatic landscape rotation.
+
+## Verification — 2026-11-02
+
+- `testDebugUnitTest`: 119 tests, no failures, errors or skipped tests.
+- `assembleDebug`: successful; version 0.10.1 / code 18 and APK signature verified.
+- `lintDebug`: no errors, 44 warnings.
+- The production `SafeHttp.resolveHome` client successfully recognized `https://streamingcommunityz.boo/` and three catalogue sections in a live JVM check.
+- JDK 17, Gradle 8.13 and Android SDK 35; Robolectric UI coverage on APIs 26 and 35. No physical-phone or Chromecast testing was performed.
+
+If the old domain cannot be reached or displays an interactive challenge, automatic
+migration cannot discover its destination; the manual domain field remains available.
+Playback history begins with successful episode openings after this update: the old
+watched booleans contain no chronological information to migrate.
+
+The build remains debug-signed. Installing over an existing application while retaining
+its data requires the same signing key. The CI/release process is unchanged.
+
+---
+
+## Historical 0.10.0 source snapshot
+
+Previously recovered source tree. Gradle declares versionName 0.10.0 and versionCode 17.
 Package remains it.reozoz.streamclean.preview; launcher label remains ozozuz.tv.
 
 ## Included changes

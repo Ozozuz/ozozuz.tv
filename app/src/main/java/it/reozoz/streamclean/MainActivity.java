@@ -134,12 +134,13 @@ public final class MainActivity extends androidx.appcompat.app.AppCompatActivity
         status.setText("Caricamento del catalogo…");
         network.execute(()->{
             try {
-                HomeParser.Home result=SafeHttp.home(origin);
+                DomainResolver.Resolved resolved=SafeHttp.resolveHome(origin);
+                HomeParser.Home result=resolved.home();URI resolvedOrigin=resolved.origin();
                 runOnUiThread(()->{
                     if(isDestroyed() || request!=generation) return;
-                    home=result; load.setEnabled(true); url.setText(origin.toString());
-                    getPreferences(0).edit().putString("origin",origin.toString()).apply();
-                    status.setText(origin.getHost()); scheduleSearch();
+                    home=result; currentOrigin=resolvedOrigin; load.setEnabled(true); url.setText(resolvedOrigin.toString());
+                    getPreferences(0).edit().putString("origin",resolvedOrigin.toString()).apply();
+                    status.setText(resolvedOrigin.getHost()); scheduleSearch();
                 });
             } catch(Exception e) {
                 runOnUiThread(()->{
