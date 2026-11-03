@@ -1,4 +1,31 @@
-# ozozuz.tv 0.10.3 — source snapshot
+# ozozuz.tv 0.10.4 — source snapshot
+
+VersionName 0.10.4 / versionCode 21; package remains
+`it.reozoz.streamclean.preview`.
+
+## Mascot update
+
+The user-supplied thumbs-up illustration replaces the launcher artwork and README
+mascot. `assets/mascot-thumbs-up.jpg` preserves the uploaded JPG byte for byte.
+All five launcher density PNGs and the adaptive foreground are deterministic
+resizes. The existing white adaptive background and launcher XML references remain.
+Round and rounded-square masks were visually inspected to check face/thumb framing.
+No application Java, playback defaults, network policy or preference storage changed.
+
+## Verification — 2026-11-03
+
+- `assembleDebug`: successful; APK version 0.10.4 / code 21 verified.
+- All six packaged launcher PNGs decode to exactly the same pixels as the new source assets.
+- The README illustration is byte-for-byte identical to the user upload.
+- APK signature verified and matches the previously attached 0.10.3 APK, using the preserved local development key (excluded from git).
+
+Only artwork, documentation and the application version changed. The previous
+functional test results are historical below; they were not rerun for this asset-only
+change. No physical-device launcher validation was performed.
+
+---
+
+## Historical 0.10.3 source snapshot
 
 VersionName 0.10.3 / versionCode 20; installed package remains
 `it.reozoz.streamclean.preview`.
