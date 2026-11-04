@@ -43,7 +43,21 @@ public class CastHttpServerTest {
  @Test public void disallowsDifferentReceiverAndClosesListeningSocket()throws Exception{
   InetAddress loop=InetAddress.getByName("127.0.0.1");AtomicInteger opened=new AtomicInteger();CastHttpServer server=new CastHttpServer(loop,InetAddress.getByName("127.0.0.2"),(p,r,h)->{opened.incrementAndGet();return null;});
   URI url=URI.create(server.url("video.mp4"));
-  try(Socket s=new Socket(url.getHost(),url.getPort())){s.setSoTimeout(3000);assertEquals(-1,s.getInputStream().read());}finally{server.close();}
-  assertEquals(0,opened.get());try(Socket ignored=new Socket(url.getHost(),url.getPort())){fail();}catch(ConnectException expected){}
+  try(Socket s=new Socket(url.getHost(),url.getPort())){
+   s.setSoTimeout(3000);
+   try{assertEquals(-1,s.getInputStream().read());}catch(SocketException expectedReset){}
+  }finally{server.close();}
+  assertEquals(0,opened.get());
+  // A pending accept may finish the TCP handshake while the JVM closes the
+  // listening socket. Check eventual refusal rather than a scheduling snapshot.
+  long deadline=System.nanoTime()+3_000_000_000L;
+  while(true){
+   try(Socket probe=new Socket()){probe.connect(new InetSocketAddress(url.getHost(),url.getPort()),250);}
+   catch(ConnectException expected){break;}
+   catch(SocketException | SocketTimeoutException closing){/* Retry transient handshake outcomes until refusal or deadline. */}
+   if(System.nanoTime()>=deadline)fail("Listening socket still accepts connections after close()");
+   Thread.sleep(5);
+  }
+  assertEquals(0,opened.get());
  }
 }

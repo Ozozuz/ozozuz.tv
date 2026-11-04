@@ -26,6 +26,20 @@ for South Park S18 E2 confirmed Italian `DEFAULT=YES` with `lang=it` and English
 - APK signature verified and matches the previously attached 0.10.4 APK.
 - Live provider checks: changing only `lang` to English is accepted on the real signed embed URL. The resulting provider playlist marks English as default; the Italian request instead marks Italian as default.
 
+## CI socket-test stabilization — 2026-11-04
+
+The first GitHub run for 0.10.5 passed the 17 player-script tests but failed the
+Cast shutdown fixture: its single immediate post-close connection probe could
+complete during socket teardown. Local stress reproduced intermittent failures.
+The fixture now accepts EOF/reset for receiver rejection and polls, with a
+three-second deadline, for an actual refused connection after closing the listener.
+It does not treat resets or timeouts as proof that the listener was released.
+
+The corrected shutdown test passed 5,000 consecutive runs. A negative control
+that deliberately leaves the listening socket open still fails at the deadline.
+This follow-up changes tests/documentation only; application code and APK version
+remain 0.10.5.
+
 Manifest generation and automated track/state tests were verified. Full live
 playback and physical-phone validation were not performed.
 
