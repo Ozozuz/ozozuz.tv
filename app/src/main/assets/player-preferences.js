@@ -32,29 +32,54 @@
     });
     return best;
   }
-  let player, audioDone = preference.audio === 'default', subtitlesDone = preference.subtitles === 'default';
+  let player, started = false, retryUntil = 0, disposed = false;
+  const audio = { done: preference.audio === 'default', retryAt: 0 };
+  const subtitles = { done: preference.subtitles === 'default', retryAt: 0 };
+  function selected(current, tracks, index, wanted) {
+    if (typeof current === 'number') return current === index;
+    if (!current || typeof current !== 'object') return false;
+    if (wanted === 'off') return current.id === 'off';
+    return score(current, wanted) > 0 || current === tracks[index];
+  }
+  function choose(state, tracks, wanted, captions, getter, setter) {
+    if (state.done || typeof setter !== 'function') return;
+    const index = wanted === 'off' ? (tracks.length ? 0 : -1) : select(tracks, wanted, captions);
+    if (index < 0) return;
+    if (typeof getter === 'function' && selected(getter.call(player), tracks, index, wanted)) {
+      state.done = true;
+      return;
+    }
+    if (Date.now() < state.retryAt) return;
+    // An SDK setter can return successfully while its provider is still initializing.
+    state.retryAt = Date.now() + 1000;
+    setter.call(player, index);
+    state.done = typeof getter !== 'function' || selected(getter.call(player), tracks, index, wanted);
+  }
   function apply() {
+    if (disposed) return;
+    if (!started) {
+      try { if (typeof player.getState !== 'function' || player.getState() !== 'playing') return; }
+      catch (_) { return; }
+      started = true;
+      retryUntil = Date.now() + 10000;
+    }
+    if (Date.now() > retryUntil) { audio.done = true; subtitles.done = true; }
     try {
-      if (!audioDone && typeof player.getAudioTracks === 'function') {
-        const tracks = player.getAudioTracks() || [];
-        const index = select(tracks, preference.audio, false);
+      if (!audio.done && typeof player.getAudioTracks === 'function') {
         const setter = typeof player.setCurrentAudioTrack === 'function' ? player.setCurrentAudioTrack : player.setCurrentAudio;
-        if (index >= 0 && typeof setter === 'function') {
-          audioDone = true;
-          try { setter.call(player, index); } catch (_) { audioDone = false; }
-        }
+        choose(audio, player.getAudioTracks() || [], preference.audio, false, player.getCurrentAudioTrack, setter);
       }
-    } catch (_) { /* An unavailable audio API must not affect captions or playback. */ }
+    } catch (_) { /* Audio errors never prevent applying subtitles. */ }
     try {
-      if (!subtitlesDone && typeof player.getCaptionsList === 'function' && typeof player.setCurrentCaptions === 'function') {
-        const tracks = player.getCaptionsList() || [];
-        const index = preference.subtitles === 'off' ? (tracks.length ? 0 : -1) : select(tracks, preference.subtitles, true);
-        if (index >= 0) {
-          subtitlesDone = true;
-          try { player.setCurrentCaptions(index); } catch (_) { subtitlesDone = false; }
-        }
+      if (!subtitles.done && typeof player.getCaptionsList === 'function') {
+        choose(subtitles, player.getCaptionsList() || [], preference.subtitles, true, player.getCurrentCaptions, player.setCurrentCaptions);
       }
-    } catch (_) { /* Missing captions retain the provider's own default. */ }
+    } catch (_) { /* Unavailable subtitles retain the provider default. */ }
+    if (audio.done && subtitles.done) clearInterval(timer);
+  }
+  function firstFrame() {
+    if (!started) { started = true; retryUntil = Date.now() + 10000; }
+    apply();
   }
   function connect() {
     try {
@@ -64,13 +89,14 @@
       const config = candidate.getConfig();
       if (!config || !Array.isArray(config.playlist) || !config.playlist.length) return false;
       player = candidate;
-      ['ready', 'audioTracks', 'captionsList', 'firstFrame'].forEach(event => player.on(event, apply));
-      // The app loads one episode per frame document; native next/reload creates a new document.
-      // Track-list refreshes and manual in-player changes never reset the one-shot defaults.
-      apply();
+      ['ready', 'audioTracks', 'captionsList', 'audioTrackChanged', 'captionsChanged'].forEach(event => player.on(event, apply));
+      player.on('firstFrame', firstFrame);
       return true;
     } catch (_) { return false; }
   }
-  const timer = setInterval(() => { if (connect()) clearInterval(timer); }, 200);
-  window.addEventListener('pagehide', () => clearInterval(timer), {once: true});
+  const timer = setInterval(() => {
+    if (!player && !connect()) return;
+    apply();
+  }, 200);
+  window.addEventListener('pagehide', () => { disposed = true; clearInterval(timer); }, {once: true});
 })(__OZOZUZ_PREFERENCES__);

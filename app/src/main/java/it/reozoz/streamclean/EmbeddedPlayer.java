@@ -81,14 +81,16 @@ final class EmbeddedPlayer {
         container.addView(web,new FrameLayout.LayoutParams(-1,-1));
     }
     static boolean supportsLanguageDefaults(){try{return androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT);}catch(RuntimeException unsupported){return false;}}
-    private void languageDefaults(){
+    private void languageDefaults(PlaybackPreferences preferences){
         if(languageScript!=null){languageScript.remove();languageScript=null;}
         if(!supportsLanguageDefaults())return;
-        try{languageScript=androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web,new PlaybackPreferences(activity).script(activity),java.util.Collections.singleton("https://vixcloud.cc"));}
+        try{languageScript=androidx.webkit.WebViewCompat.addDocumentStartJavaScript(web,preferences.script(activity),java.util.Collections.singleton("https://vixcloud.cc"));}
         catch(java.io.IOException ignored){/* Playback remains available if preferences cannot be loaded. */}
     }
     void load(TitleParser.Player source) {
-        languageDefaults();
+        PlaybackPreferences preferences=new PlaybackPreferences(activity);
+        source=new TitleParser.Player(source.page(),PlayerLanguageUrl.audio(source.embed(),preferences.audio()));
+        languageDefaults(preferences);
         window.awake(true);media=new MediaAllowlist();downloadSource=null;embed=source.embed().toString();
         String html="<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><meta http-equiv='Content-Security-Policy' content=\"default-src 'none'; frame-src https://vixcloud.cc; style-src 'unsafe-inline'\"><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;background:#000;overflow:hidden}</style></head><body><iframe src=\""+android.text.TextUtils.htmlEncode(embed)+"\" allow='autoplay; fullscreen; picture-in-picture' allowfullscreen></iframe></body></html>";
         web.loadDataWithBaseURL(source.page().toString(),html,"text/html","UTF-8",null);

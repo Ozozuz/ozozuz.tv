@@ -36,7 +36,7 @@ The app supervises my clicks; the branding department remains unsupervised.
 
 ## Get It Running
 
-**Android 8.0+** · **0.10.4**
+**Android 8.0+** · **0.10.5**
 
 Grab [the APK from Releases](https://github.com/Ozozuz/ozozuz.tv/releases/latest).
 The casino is not included.
@@ -54,4 +54,4 @@ the debug APK and checksum to Releases for each new version on `main`.
 Updating an existing installation requires the same signing key.
 
 For the technical rabbit hole: [Android notes](docs/ANDROID.md) ·
-[Source status](SOURCE_STATUS.md) · [Release notes](docs/releases/v0.10.4.md).
+[Source status](SOURCE_STATUS.md) · [Release notes](docs/releases/v0.10.5.md).

@@ -1,4 +1,37 @@
-# ozozuz.tv 0.10.4 — source snapshot
+# ozozuz.tv 0.10.5 — source snapshot
+
+VersionName 0.10.5 / versionCode 22; installed package unchanged.
+
+## Audio-default correction
+
+The catalogue supplies an embed URL with `lang=it`. The provider's actual embed
+script passes that value to its HLS playlist endpoint. A live manifest comparison
+for South Park S18 E2 confirmed Italian `DEFAULT=YES` with `lang=it` and English
+`DEFAULT=YES` with `lang=en`; both audio tracks were present in both manifests.
+
+- The selected audio preference now updates only the embed URL's `lang` parameter,
+  preserving signed/encoded query values. Provider-default mode keeps the URL unchanged.
+- Script selection waits for playback/first frame, confirms the active track through
+  the player's getters, and retries silently ignored initialization requests with a
+  one-second backoff and ten-second limit. Audio and captions remain independent.
+- Confirmed selections stay one-shot so subsequent in-player manual choices are kept.
+- No broader catalogue networking, resource permissions or UI settings changes.
+
+## Verification — 2026-11-04
+
+- `testDebugUnitTest`: 136 tests, zero failures/errors/skips.
+- `node --test tools/test-player-preferences.mjs`: 17 passing tests. The two new initialization regressions fail against the previous script and pass with this correction.
+- `assembleDebug`: successful, version 0.10.5 / code 22; packaged preference script exactly matches the tested source.
+- `lintDebug`: zero errors, 50 warnings.
+- APK signature verified and matches the previously attached 0.10.4 APK.
+- Live provider checks: changing only `lang` to English is accepted on the real signed embed URL. The resulting provider playlist marks English as default; the Italian request instead marks Italian as default.
+
+Manifest generation and automated track/state tests were verified. Full live
+playback and physical-phone validation were not performed.
+
+---
+
+## Historical 0.10.4 source snapshot
 
 VersionName 0.10.4 / versionCode 21; package remains
 `it.reozoz.streamclean.preview`.
